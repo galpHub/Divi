@@ -71,7 +71,7 @@ public:
 
     bool Condition(const CBlockIndex* pindex) const override { return (pindex->nVersion & 0x100); }
 
-    ThresholdState GetStateFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::GetStateFor(pindexPrev, cache); }
+    ThresholdState GetStateFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::UpdateCacheState(pindexPrev, cache); }
     int GetStateSinceHeightFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::GetStateSinceHeightFor(pindexPrev, cache); }
 };
 

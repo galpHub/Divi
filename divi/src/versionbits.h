@@ -141,7 +141,7 @@ public:
     BIP9Stats GetStateStatisticsFor(const CBlockIndex* pindex) const;
     /** Returns the state for pindex A based on parent pindexPrev B. Applies any state transition if conditions are present.
      *  Caches state from first block of period. */
-    ThresholdState GetStateFor(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const;
+    ThresholdState UpdateCacheState(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const;
     /** Returns the height since when the ThresholdState has started for pindex A based on parent pindexPrev B, all blocks of a period share the same */
     int GetStateSinceHeightFor(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const;
 };

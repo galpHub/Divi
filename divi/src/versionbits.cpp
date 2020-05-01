@@ -5,7 +5,7 @@
 #include <versionbits.h>
 #include <chain.h>
 
-ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const
+ThresholdState AbstractThresholdConditionChecker::UpdateCacheState(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const
 {
     const int& nPeriod = bip_.nPeriod;
     const int& nThreshold = bip_.threshold;
@@ -130,7 +130,7 @@ int AbstractThresholdConditionChecker::GetStateSinceHeightFor(const CBlockIndex*
         return 0;
     }
 
-    const ThresholdState initialState = GetStateFor(pindexPrev, cache);
+    const ThresholdState initialState = UpdateCacheState(pindexPrev, cache);
 
     // BIP 9 about state DEFINED: "The genesis block is by definition in this state for each deployment."
     if (initialState == ThresholdState::DEFINED) {
@@ -149,7 +149,7 @@ int AbstractThresholdConditionChecker::GetStateSinceHeightFor(const CBlockIndex*
 
     const CBlockIndex* previousPeriodParent = pindexPrev->GetAncestor(pindexPrev->nHeight - nPeriod);
 
-    while (previousPeriodParent != nullptr && GetStateFor(previousPeriodParent, cache) == initialState) {
+    while (previousPeriodParent != nullptr && UpdateCacheState(previousPeriodParent, cache) == initialState) {
         pindexPrev = previousPeriodParent;
         previousPeriodParent = pindexPrev->GetAncestor(pindexPrev->nHeight - nPeriod);
     }
@@ -179,7 +179,7 @@ public:
 
 ThresholdState VersionBitsState(const CBlockIndex* pindexPrev, const BIP9Deployment& bip, VersionBitsCache& cache)
 {
-    return VersionBitsConditionChecker(bip).GetStateFor(pindexPrev, cache.caches[bip.bit]);
+    return VersionBitsConditionChecker(bip).UpdateCacheState(pindexPrev, cache.caches[bip.bit]);
 }
 
 BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const BIP9Deployment& bip)
