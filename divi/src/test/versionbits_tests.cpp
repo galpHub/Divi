@@ -245,29 +245,6 @@ BOOST_AUTO_TEST_CASE(versionbits_test)
                            .Mine(7000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000);
     }
 
-    // Sanity checks of version bit deployments
-    /*
-    const auto chainParams = CreateChainParams(CBaseChainParams::MAIN);
-    const Consensus::Params &mainnetParams = chainParams->GetConsensus();
-    for (int i=0; i<(int) Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
-        uint32_t bitmask = VersionBitsMask(mainnetParams, static_cast<Consensus::DeploymentPos>(i));
-        // Make sure that no deployment tries to set an invalid bit.
-        BOOST_CHECK_EQUAL(bitmask & ~(uint32_t)VERSIONBITS_TOP_MASK, bitmask);
-
-        // Verify that the deployment windows of different deployment using the
-        // same bit are disjoint.
-        // This test may need modification at such time as a new deployment
-        // is proposed that reuses the bit of an activated soft fork, before the
-        // end time of that soft fork.  (Alternatively, the end time of that
-        // activated soft fork could be later changed to be earlier to avoid
-        // overlap.)
-        for (int j=i+1; j<(int) Consensus::MAX_VERSION_BITS_DEPLOYMENTS; j++) {
-            if (VersionBitsMask(mainnetParams, static_cast<Consensus::DeploymentPos>(j)) == bitmask) {
-                BOOST_CHECK(mainnetParams.vDeployments[j].nStartTime > mainnetParams.vDeployments[i].nTimeout ||
-                        mainnetParams.vDeployments[i].nStartTime > mainnetParams.vDeployments[j].nTimeout);
-            }
-        }
-    }*/
 }
 /*
 BOOST_AUTO_TEST_CASE(versionbits_computeblockversion,SKIP_TEST)
