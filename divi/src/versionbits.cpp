@@ -123,7 +123,7 @@ BIP9Stats AbstractThresholdConditionChecker::GetStateStatisticsFor(const CBlockI
     return stats;
 }
 
-int AbstractThresholdConditionChecker::GetStateSinceHeightFor(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const
+int AbstractThresholdConditionChecker::StartingHeightOfBlockIndexState(const CBlockIndex* pindexPrev, ThresholdConditionCache& cache) const
 {
     int64_t start_time = bip_.nStartTime;
     if (start_time == BIP9Deployment::ALWAYS_ACTIVE) {
@@ -189,7 +189,7 @@ BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const BIP9Deploym
 
 int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const BIP9Deployment& bip, VersionBitsCache& cache)
 {
-    return VersionBitsConditionChecker(bip).GetStateSinceHeightFor(pindexPrev, cache.caches[bip.bit]);
+    return VersionBitsConditionChecker(bip).StartingHeightOfBlockIndexState(pindexPrev, cache.caches[bip.bit]);
 }
 
 uint32_t VersionBitsMask(const BIP9Deployment& bip)

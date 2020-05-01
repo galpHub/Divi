@@ -72,7 +72,7 @@ public:
     bool Condition(const CBlockIndex* pindex) const override { return (pindex->nVersion & 0x100); }
 
     ThresholdState GetStateFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::UpdateCacheState(pindexPrev, cache); }
-    int GetStateSinceHeightFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::GetStateSinceHeightFor(pindexPrev, cache); }
+    int StartingHeightOfBlockIndexState(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::StartingHeightOfBlockIndexState(pindexPrev, cache); }
 };
 
 class TestAlwaysActiveConditionChecker : public TestConditionChecker
@@ -141,8 +141,8 @@ public:
     VersionBitsTester& TestStateSinceHeight(int height) {
         for (int i = 0; i < CHECKERS; i++) {
             if (InsecureRandBits(i) == 0) {
-                BOOST_CHECK_MESSAGE(checker[i].GetStateSinceHeightFor(vpblock.empty() ? nullptr : vpblock.back()) == height, strprintf("Test %i for StateSinceHeight", num));
-                BOOST_CHECK_MESSAGE(checker_always[i].GetStateSinceHeightFor(vpblock.empty() ? nullptr : vpblock.back()) == 0, strprintf("Test %i for StateSinceHeight (always active)", num));
+                BOOST_CHECK_MESSAGE(checker[i].StartingHeightOfBlockIndexState(vpblock.empty() ? nullptr : vpblock.back()) == height, strprintf("Test %i for StateSinceHeight", num));
+                BOOST_CHECK_MESSAGE(checker_always[i].StartingHeightOfBlockIndexState(vpblock.empty() ? nullptr : vpblock.back()) == 0, strprintf("Test %i for StateSinceHeight (always active)", num));
             }
         }
         num++;
