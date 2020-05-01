@@ -8,8 +8,6 @@
 #include <map>
 #include <limits>
 
-class CBlockIndex;
-
 /** What block version to use for new blocks (pre versionbits) */
 static const int32_t VERSIONBITS_LAST_OLD_BLOCK_VERSION = 4;
 /** What bits to set in version for versionbits blocks */
@@ -102,6 +100,7 @@ struct BIP9Deployment
 };
 
 
+class CBlockIndex;
 
 // A map that gives the state for blocks whose height is a multiple of Period().
 // The map is indexed by the block's parent, however, so all keys in the map
