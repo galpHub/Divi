@@ -16,6 +16,19 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
 {
     return false;
 }
+void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBlockIndex(
+    const CBlockIndex* currentShallowBlockIndex,
+    std::vector<const CBlockIndex*>& startingBlocksForPeriods) const
+{
+    if(!thresholdCache_.count(currentShallowBlockIndex) && currentShallowBlockIndex)
+    {
+        int predecesorHeight = currentShallowBlockIndex->nHeight - (currentShallowBlockIndex->nHeight % bip_.nPeriod);
+        predecesorHeight -= (predecesorHeight == currentShallowBlockIndex->nHeight)? bip_.nPeriod: 0;
+        const CBlockIndex* predecesor = currentShallowBlockIndex->GetAncestor(predecesorHeight);
+        startingBlocksForPeriods.push_back(predecesor);
+        return getStartingBlocksForPeriodsPreceedingBlockIndex(predecesor,startingBlocksForPeriods);
+    }
+}
 
 ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const
 {
@@ -30,12 +43,13 @@ ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlo
         {
             return thresholdCache_[shallowBlockIndex];
         }
-        else if(shallowBlockIndex && shallowBlockIndex->nHeight > 0)
+        std::vector<const CBlockIndex*> startingBlocksForPeriods;
+        getStartingBlocksForPeriodsPreceedingBlockIndex(
+            shallowBlockIndex,
+            startingBlocksForPeriods);
+        if(!startingBlocksForPeriods.empty() && startingBlocksForPeriods.back()!=NULL)
         {
-            int predecesorHeight = shallowBlockIndex->nHeight - (shallowBlockIndex->nHeight % bip_.nPeriod);
-            predecesorHeight -= (predecesorHeight == shallowBlockIndex->nHeight)? bip_.nPeriod: 0;
-            const CBlockIndex* predecesor = shallowBlockIndex->GetAncestor(predecesorHeight);
-            return getStateAtBlockIndex(predecesor);
+            return thresholdCache_[startingBlocksForPeriods.back()];
         }
         return ThresholdState::DEFINED;
     }

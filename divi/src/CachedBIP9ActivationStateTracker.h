@@ -4,6 +4,7 @@
 #include <map>
 #include <BIP9Deployment.h>
 #include <I_BIP9ActivationStateTracker.h>
+#include <vector>
 
 class CBlockIndex;
 typedef std::map<const CBlockIndex*, ThresholdState> ThresholdConditionCache;
@@ -13,6 +14,11 @@ class CachedBIP9ActivationStateTracker: public I_BIP9ActivationStateTracker
 private:
     const BIP9Deployment& bip_;
     ThresholdConditionCache& thresholdCache_;
+
+    void getStartingBlocksForPeriodsPreceedingBlockIndex(
+        const CBlockIndex* currentShallowBlockIndex,
+        std::vector<const CBlockIndex*>& startingBlocksForPeriods
+        ) const;
 protected:
     virtual bool bipIsSignaledFor(const CBlockIndex* shallowBlockIndex) const;
 public:
