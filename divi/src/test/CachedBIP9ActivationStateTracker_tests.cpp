@@ -112,7 +112,20 @@ BOOST_AUTO_TEST_CASE(willDeferToCachedStateAtApropriateHeight)
                 .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::ACTIVE,
             "The height is" << height);
     }
+}
 
+BOOST_AUTO_TEST_CASE(willGetEarliestCachedState)
+{
+    BIP9Deployment bip = createViableBipDeployment();
+    ThresholdConditionCache cache;
+    FakeBlockIndexChain fakeChain;
+    int fakeChainSize = 2*bip.nPeriod;
+    fakeChain.extend(fakeChainSize, 0, 0);
+
+    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+    BOOST_CHECK(
+        activationStateTracker
+            .getStateAtBlockIndex(fakeChain.at(fakeChainSize-1))==ThresholdState::DEFINED);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

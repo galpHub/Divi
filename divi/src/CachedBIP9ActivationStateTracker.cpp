@@ -32,9 +32,9 @@ ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlo
         }
         else if(shallowBlockIndex && shallowBlockIndex->nHeight > 0)
         {
-            const CBlockIndex* predecesor = shallowBlockIndex->GetAncestor(
-                shallowBlockIndex->nHeight - (shallowBlockIndex->nHeight % bip_.nPeriod)
-            );
+            int predecesorHeight = shallowBlockIndex->nHeight - (shallowBlockIndex->nHeight % bip_.nPeriod);
+            predecesorHeight -= (predecesorHeight == shallowBlockIndex->nHeight)? bip_.nPeriod: 0;
+            const CBlockIndex* predecesor = shallowBlockIndex->GetAncestor(predecesorHeight);
             return getStateAtBlockIndex(predecesor);
         }
         return ThresholdState::DEFINED;
