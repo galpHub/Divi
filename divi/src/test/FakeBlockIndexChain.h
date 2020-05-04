@@ -1,0 +1,26 @@
+#ifndef FAKE_BLOCK_INDEX_CHAIN_H
+#define FAKE_BLOCK_INDEX_CHAIN_H
+#include <cstdint>
+#include <vector>
+class CBlockIndex;
+struct FakeBlockIndexChain
+{
+private:
+    std::vector<CBlockIndex*> fakeChain;
+public:
+    void resetFakeChain();
+    FakeBlockIndexChain();
+    ~FakeBlockIndexChain();
+    void extend(
+        unsigned maxHeight,
+        int32_t time,
+        int32_t version);
+    static void extendFakeBlockIndexChain(
+        unsigned height,
+        int32_t time,
+        int32_t version,
+        std::vector<CBlockIndex*>& currentChain
+        );
+    CBlockIndex* at(unsigned int) const;
+};
+#endif //FAKE_BLOCK_INDEX_CHAIN_H

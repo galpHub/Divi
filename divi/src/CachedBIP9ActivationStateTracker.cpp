@@ -1,4 +1,5 @@
 #include <CachedBIP9ActivationStateTracker.h>
+#include <chain.h>
 
 CachedBIP9ActivationStateTracker::CachedBIP9ActivationStateTracker(
     const BIP9Deployment& bip,
@@ -15,6 +16,7 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
 {
     return false;
 }
+
 ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const
 {
     if(bip_.nStartTime > bip_.nTimeout ||
@@ -27,6 +29,13 @@ ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlo
         if(thresholdCache_.count(shallowBlockIndex))
         {
             return thresholdCache_[shallowBlockIndex];
+        }
+        else if(shallowBlockIndex && shallowBlockIndex->nHeight > 0)
+        {
+            const CBlockIndex* predecesor = shallowBlockIndex->GetAncestor(
+                shallowBlockIndex->nHeight - (shallowBlockIndex->nHeight % bip_.nPeriod)
+            );
+            return getStateAtBlockIndex(predecesor);
         }
         return ThresholdState::DEFINED;
     }
