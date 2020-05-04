@@ -17,5 +17,13 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
 }
 ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const
 {
-    return ThresholdState::FAILED;
+    if(bip_.nStartTime > bip_.nTimeout ||
+        bip_.nPeriod < bip_.threshold)
+    {
+        return ThresholdState::FAILED;
+    }
+    else
+    {
+        return ThresholdState::DEFINED;
+    }
 }
