@@ -24,6 +24,10 @@ ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlo
     }
     else
     {
+        if(thresholdCache_.count(shallowBlockIndex))
+        {
+            return thresholdCache_[shallowBlockIndex];
+        }
         return ThresholdState::DEFINED;
     }
 }

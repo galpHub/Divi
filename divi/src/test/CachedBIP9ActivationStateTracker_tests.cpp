@@ -1,6 +1,7 @@
 #include <test_only.h>
 
 #include <CachedBIP9ActivationStateTracker.h>
+#include <chain.h>
 
 static inline BIP9Deployment createViableBipDeployment()
 {
@@ -71,4 +72,17 @@ BOOST_AUTO_TEST_CASE(willFindStateToBeDefinedByDefaultIfBipIsViable)
         BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(NULL)==ThresholdState::DEFINED);
     }
 }
+
+BOOST_AUTO_TEST_CASE(willFindStateInCacheIfPresent)
+{
+    BIP9Deployment bip = createViableBipDeployment();
+    ThresholdConditionCache cache;
+    std::shared_ptr<CBlockIndex> blockIndexPtr = std::make_shared<CBlockIndex>();
+    cache[blockIndexPtr.get()] = ThresholdState::ACTIVE;
+
+    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(blockIndexPtr.get())==ThresholdState::ACTIVE);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
