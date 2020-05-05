@@ -18,7 +18,7 @@ static inline BIP9Deployment createViableBipDeployment()
 static inline BIP9Deployment createTimedOutBipDeployment()
 {
     return BIP9Deployment(
-        "ViableTestBIP9",
+        "TimedoutTestBIP9",
         0u,
         (int64_t)1598600341,
         (int64_t)1588600341,
@@ -29,7 +29,7 @@ static inline BIP9Deployment createTimedOutBipDeployment()
 static inline BIP9Deployment createBipDeploymentWithPeriodLessThanThreshold()
 {
     return BIP9Deployment(
-        "ViableTestBIP9",
+        "UnattainableTestBIP9",
         0u,
         (int64_t)1598600341,
         (int64_t)1588600341,
