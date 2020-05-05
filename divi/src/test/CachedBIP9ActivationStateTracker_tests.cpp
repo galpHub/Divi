@@ -128,4 +128,23 @@ BOOST_AUTO_TEST_CASE(willGetEarliestCachedState)
             .getStateAtBlockIndex(fakeChain.at(fakeChainSize-1))==ThresholdState::DEFINED);
 }
 
+BOOST_AUTO_TEST_CASE(willDetectBlockSignalsForBip)
+{
+    BIP9Deployment bip = createViableBipDeployment();
+    ThresholdConditionCache cache;
+    FakeBlockIndexChain fakeChain;
+    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+    int32_t bipMask = ( (int32_t)1 << bip.bit);
+
+
+    fakeChain.extend(1, 0, VERSIONBITS_TOP_BITS );
+    fakeChain.extend(1, 0,  VERSIONBITS_TOP_BITS | bipMask );
+    fakeChain.extend(1, 0, VERSIONBITS_TOP_BITS | ( bipMask << 1 ) );
+    
+    BOOST_CHECK(!activationStateTracker.bipIsSignaledFor(fakeChain.at(0)));
+    BOOST_CHECK(activationStateTracker.bipIsSignaledFor(fakeChain.at(1)));
+    BOOST_CHECK(!activationStateTracker.bipIsSignaledFor(fakeChain.at(2)));
+}
+
 BOOST_AUTO_TEST_SUITE_END();
