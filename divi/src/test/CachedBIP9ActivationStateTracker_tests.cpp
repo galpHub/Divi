@@ -284,4 +284,55 @@ BOOST_AUTO_TEST_CASE(willOverrideTransitionToOtherStateIfBlockTimeIsAtLeastTimeo
     }
 }
 
+static void testTransitionOccursRegardless(ThresholdState start, ThresholdState end)
+{
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        int32_t bipMask = ( (int32_t)1 << bip.bit);
+
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.nPeriod, bip.nStartTime +1, VERSIONBITS_TOP_BITS | bipMask );
+        fakeChain.extend(1, bip.nTimeout, 1 );
+        cache[fakeChain.at(0)] = start;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==end);
+    }
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        int32_t bipMask = ( (int32_t)1 << bip.bit);
+
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.nPeriod+1, bip.nTimeout +1, VERSIONBITS_TOP_BITS | bipMask );
+        cache[fakeChain.at(0)] = start;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==end);
+    }
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.nPeriod+1, bip.nTimeout +1, 1 );
+        cache[fakeChain.at(0)] = start;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==end);
+    }
+
+}
+BOOST_AUTO_TEST_CASE(willTransitionFromLockedInToActiveRegardlessOfBlockState)
+{
+    testTransitionOccursRegardless(ThresholdState::LOCKED_IN,ThresholdState::ACTIVE);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
