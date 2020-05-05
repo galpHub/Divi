@@ -661,6 +661,14 @@ struct CBlockTemplate {
     CBlock block;
     std::vector<CAmount> vTxFees;
     std::vector<int64_t> vTxSigOps;
+
+    CBlockTemplate(
+        ): block()
+        , vTxFees()
+        , vTxSigOps()
+    {
+        block.nVersion = 4;
+    }
 };
 
 /** Address index */

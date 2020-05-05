@@ -101,9 +101,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         return NULL;
     CBlock* pblock = &pblocktemplate->block; // pointer for convenience
 
-    // Make sure to create the correct block version
-    pblock->nVersion = 4;
-
     // Create coinbase tx
     CMutableTransaction txNew;
     txNew.vin.resize(1);
