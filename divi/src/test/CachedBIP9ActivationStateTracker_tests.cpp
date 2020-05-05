@@ -220,4 +220,34 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedStateToStartedStateOnlyIfBlockTime
     }
 }
 
+BOOST_AUTO_TEST_CASE(willTransitionFromDefinedOrStartedStateToFailedStateIfBlockTimeIsAtLeastTimeout)
+{
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.nPeriod, bip.nStartTime - 1, 1 );
+        fakeChain.extend(1, bip.nTimeout, 1 );
+        cache[fakeChain.at(0)] = ThresholdState::DEFINED;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+    }    
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.nPeriod, bip.nStartTime - 1, 1 );
+        fakeChain.extend(1, bip.nTimeout, 1 );
+        cache[fakeChain.at(0)] = ThresholdState::STARTED;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END();

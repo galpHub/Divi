@@ -57,11 +57,21 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
                     thresholdCache_[*it] = ThresholdState::STARTED;
                     stateTransitionOccurred |= true;
                 }
+                if((*it)->nTime >= bip_.nTimeout)
+                {
+                    thresholdCache_[*it] = ThresholdState::FAILED;
+                    stateTransitionOccurred |= true;
+                }
                 break;
             case ThresholdState::STARTED:
                 if(enoughBipSignalsToLockIn(*it))
                 {
                     thresholdCache_[*it] = ThresholdState::LOCKED_IN;
+                    stateTransitionOccurred |= true;
+                }
+                if((*it)->nTime >= bip_.nTimeout)
+                {
+                    thresholdCache_[*it] = ThresholdState::FAILED;
                     stateTransitionOccurred |= true;
                 }
                 break;
