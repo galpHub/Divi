@@ -335,4 +335,11 @@ BOOST_AUTO_TEST_CASE(willTransitionFromLockedInToActiveRegardlessOfBlockState)
     testTransitionOccursRegardless(ThresholdState::LOCKED_IN,ThresholdState::ACTIVE);
 }
 
+BOOST_AUTO_TEST_CASE(willTransitionToItsPresentStateFromFixedStates)
+{
+    testTransitionOccursRegardless(ThresholdState::ACTIVE,ThresholdState::ACTIVE);
+    testTransitionOccursRegardless(ThresholdState::FAILED,ThresholdState::FAILED);
+}
+
+
 BOOST_AUTO_TEST_SUITE_END();

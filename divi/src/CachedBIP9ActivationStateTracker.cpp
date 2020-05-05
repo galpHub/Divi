@@ -80,6 +80,11 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
                 thresholdCache_[*it] = ThresholdState::ACTIVE;
                 stateTransitionOccurred |= true;
                 break;
+            case ThresholdState::FAILED:
+            case ThresholdState::ACTIVE:
+                thresholdCache_[*it] = lastKnownState;
+                stateTransitionOccurred |= true;
+                break;
             default:
                 thresholdCache_[*it] = lastKnownState;
                 stateTransitionOccurred |= false;
