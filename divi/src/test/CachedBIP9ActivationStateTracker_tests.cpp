@@ -147,4 +147,48 @@ BOOST_AUTO_TEST_CASE(willDetectBlockSignalsForBip)
     BOOST_CHECK(!activationStateTracker.bipIsSignaledFor(fakeChain.at(2)));
 }
 
+
+BOOST_AUTO_TEST_CASE(willClaimToUpdateIfBlocksMeetThresholdAndPriorStateIsStarted)
+{
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.threshold, 0, VERSIONBITS_TOP_BITS | (1 << bip.bit) );
+        fakeChain.extend(bip.nPeriod+1 - bip.threshold, 0, 0);
+        cache[fakeChain.at(0)] = ThresholdState::STARTED;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::LOCKED_IN);
+    }
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.threshold-1, 0, VERSIONBITS_TOP_BITS | (1 << bip.bit) );
+        fakeChain.extend(bip.nPeriod+2 - bip.threshold, 0, 0);
+        cache[fakeChain.at(0)] = ThresholdState::STARTED;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(!activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::STARTED);
+    }
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.threshold, 0, VERSIONBITS_TOP_BITS | (1 << bip.bit) );
+        fakeChain.extend(bip.nPeriod+1 - bip.threshold, 0, 0);
+        cache[fakeChain.at(0)] = ThresholdState::DEFINED;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(!activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::LOCKED_IN);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END();

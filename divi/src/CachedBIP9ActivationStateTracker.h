@@ -19,6 +19,7 @@ private:
         const CBlockIndex* currentShallowBlockIndex,
         std::vector<const CBlockIndex*>& startingBlocksForPeriods
         ) const;
+    bool enoughBipSignalsToLockIn(const CBlockIndex* uncachedStartingBlockIndex) const;
 public:
     CachedBIP9ActivationStateTracker(
         const BIP9Deployment& bip,
