@@ -19,13 +19,12 @@ private:
         const CBlockIndex* currentShallowBlockIndex,
         std::vector<const CBlockIndex*>& startingBlocksForPeriods
         ) const;
-protected:
-    virtual bool bipIsSignaledFor(const CBlockIndex* shallowBlockIndex) const;
 public:
     CachedBIP9ActivationStateTracker(
         const BIP9Deployment& bip,
         ThresholdConditionCache& thresholdCache
         );
+    virtual bool bipIsSignaledFor(const CBlockIndex* shallowBlockIndex) const;
     virtual bool update(const CBlockIndex* shallowBlockIndex);
     virtual ThresholdState getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const;
 };
