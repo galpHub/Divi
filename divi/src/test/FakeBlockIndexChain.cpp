@@ -2,7 +2,7 @@
 #include <chain.h>
 void FakeBlockIndexChain::resetFakeChain()
 {
-    for(CBlockIndex* ptr: fakeChain)
+    for(const CBlockIndex* ptr: fakeChain)
     {
         if(ptr) delete ptr;
     }
@@ -22,29 +22,30 @@ void FakeBlockIndexChain::extend(
     int32_t time,
     int32_t version)
 {
-    fakeChain.reserve(maxHeight);
-    extendFakeBlockIndexChain(maxHeight,time,version,fakeChain);
+    unsigned newHeight = fakeChain.size()+maxHeight;
+    fakeChain.reserve( newHeight );
+    extendFakeBlockIndexChain(newHeight,time,version,fakeChain);
 }
 void FakeBlockIndexChain::extendFakeBlockIndexChain(
     unsigned height,
     int32_t time,
     int32_t version,
-    std::vector<CBlockIndex*>& currentChain
+    std::vector<const CBlockIndex*>& currentChain
     )
 {
     while(currentChain.size() < height)
     {
         CBlockIndex* pindex = new CBlockIndex();
         pindex->nHeight = currentChain.size();
-        pindex->pprev = currentChain.size() > 0 ? currentChain.back() : nullptr;
+        pindex->pprev = currentChain.size() > 0 ? const_cast<CBlockIndex*>(currentChain.back()) : nullptr;
         pindex->nTime = time;
         pindex->nVersion = version;
         pindex->BuildSkip();
-        currentChain.push_back(pindex);
+        currentChain.push_back(const_cast<const CBlockIndex*>(pindex) );
     }
 }
 
-CBlockIndex* FakeBlockIndexChain::at(unsigned height) const
+const CBlockIndex* FakeBlockIndexChain::at(unsigned height) const
 {
     return fakeChain[height];
 }
