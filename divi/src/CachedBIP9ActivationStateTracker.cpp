@@ -4,7 +4,9 @@
 CachedBIP9ActivationStateTracker::CachedBIP9ActivationStateTracker(
     const BIP9Deployment& bip,
     ThresholdConditionCache& thresholdCache
-    ): bip_(bip), thresholdCache_(thresholdCache) 
+    ): bip_(bip)
+    , thresholdCache_(thresholdCache)
+    , bipIsViable_( !(bip_.nStartTime > bip_.nTimeout || bip_.nPeriod < bip_.threshold) )
 {
 }
 
@@ -49,6 +51,12 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
     ThresholdState lastKnownState = thresholdCache_[lastBlockWithCachedState];
     for(auto it = startingBlocksForPeriods.rbegin(); it != startingBlocksForPeriods.rend(); ++it)
     {
+        if(!bipIsViable_)
+        {
+            thresholdCache_[*it] = ThresholdState::FAILED;
+            stateTransitionOccurred |= true;
+            continue;
+        }
         switch(lastKnownState)
         {
             case ThresholdState::DEFINED:
@@ -111,8 +119,7 @@ void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBloc
 
 ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const
 {
-    if(bip_.nStartTime > bip_.nTimeout ||
-        bip_.nPeriod < bip_.threshold)
+    if(!bipIsViable_)
     {
         return ThresholdState::FAILED;
     }

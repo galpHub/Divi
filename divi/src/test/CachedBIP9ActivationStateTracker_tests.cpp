@@ -342,4 +342,22 @@ BOOST_AUTO_TEST_CASE(willTransitionToItsPresentStateFromFixedStates)
 }
 
 
+BOOST_AUTO_TEST_CASE(willReachFailedStateOnUpdateWithAnInvalidBip)
+{
+    {
+        BIP9Deployment bip = createTimedOutBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        fakeChain.extend(bip.nPeriod+1, bip.nTimeout - 1, 1 );
+        cache[fakeChain.at(0)] = ThresholdState::DEFINED;
+
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+        BOOST_CHECK( cache.count(fakeChain.at(bip.nPeriod)) &&
+            cache[fakeChain.at(bip.nPeriod)] ==ThresholdState::FAILED  );
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END();

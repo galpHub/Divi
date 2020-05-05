@@ -14,6 +14,7 @@ class CachedBIP9ActivationStateTracker: public I_BIP9ActivationStateTracker
 private:
     const BIP9Deployment& bip_;
     ThresholdConditionCache& thresholdCache_;
+    const bool bipIsViable_;
 
     void getStartingBlocksForPeriodsPreceedingBlockIndex(
         const CBlockIndex* currentShallowBlockIndex,
