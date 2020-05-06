@@ -91,7 +91,7 @@ void UpdateTime(CBlockHeader* pblock, const CBlockIndex* pindexPrev)
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
 }
 
-CMutableTransaction createCoinbaseTransaction(const CScript& scriptPubKeyIn)
+CMutableTransaction CreateCoinbaseTransaction(const CScript& scriptPubKeyIn)
 {
     CMutableTransaction txNew;
     txNew.vin.resize(1);
@@ -99,7 +99,14 @@ CMutableTransaction createCoinbaseTransaction(const CScript& scriptPubKeyIn)
     txNew.vout.resize(1);
     txNew.vout[0].scriptPubKey = scriptPubKeyIn;
     return txNew;
-};
+}
+
+void AddTransactionToBlock(CBlock* pblock, unique_ptr<CBlockTemplate>& pblocktemplate, CMutableTransaction txNew)
+{
+    pblock->vtx.push_back(txNew);
+    pblocktemplate->vTxFees.push_back(-1);   // updated at end
+    pblocktemplate->vTxSigOps.push_back(-1); // updated at end
+}
 
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
@@ -112,22 +119,23 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     CBlock* pblock = &pblocktemplate->block; // pointer for convenience
 
     // Create coinbase tx
-    CMutableTransaction txNew = createCoinbaseTransaction(scriptPubKeyIn);
+    CMutableTransaction txNew = CreateCoinbaseTransaction(scriptPubKeyIn);
     
-    pblock->vtx.push_back(txNew);
-    pblocktemplate->vTxFees.push_back(-1);   // updated at end
-    pblocktemplate->vTxSigOps.push_back(-1); // updated at end
+    AddTransactionToBlock(pblock, pblocktemplate, txNew);
 
     // ppcoin: if coinstake available add coinstake tx
     static int64_t nLastCoinStakeSearchTime = GetAdjustedTime(); // only initialized at startup
 
     if (fProofOfStake) {
         boost::this_thread::interruption_point();
+
         pblock->nTime = GetAdjustedTime();
         CBlockIndex* pindexPrev = chainActive.Tip();
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
         CMutableTransaction txCoinStake;
+
         int64_t nSearchTime = pblock->nTime; // search to current time
+
         bool fStakeFound = false;
         if (nSearchTime >= nLastCoinStakeSearchTime) {
             unsigned int nTxNewTime = 0;
