@@ -360,4 +360,23 @@ BOOST_AUTO_TEST_CASE(willReachFailedStateOnUpdateWithAnInvalidBip)
     }
 }
 
+BOOST_AUTO_TEST_CASE(willUpdateOnlyCacheEntriesAfterStartTime)
+{
+    BIP9Deployment bip = createViableBipDeployment();
+    ThresholdConditionCache cache;
+    FakeBlockIndexChain fakeChain;
+    fakeChain.extend(2*bip.nPeriod, bip.nStartTime - 1, 1 );
+    fakeChain.extend(bip.nPeriod+1, bip.nStartTime + 1, 1 );
+    cache[fakeChain.at(0)] = ThresholdState::DEFINED;
+
+    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+    BOOST_CHECK(activationStateTracker.update(fakeChain.at(3*bip.nPeriod)));
+    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::STARTED);
+    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(2*bip.nPeriod))==ThresholdState::DEFINED);
+    BOOST_CHECK( cache.count(fakeChain.at(bip.nPeriod))==0 );
+    BOOST_CHECK( cache.count(fakeChain.at(2*bip.nPeriod)) );
+    BOOST_CHECK( cache.count(fakeChain.at(3*bip.nPeriod)) );
+}
+
 BOOST_AUTO_TEST_SUITE_END();

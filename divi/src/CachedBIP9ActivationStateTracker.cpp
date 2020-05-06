@@ -101,6 +101,11 @@ void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBloc
         predecesorHeight -= (predecesorHeight == currentShallowBlockIndex->nHeight)? bip_.nPeriod: 0;
         const CBlockIndex* predecesor = currentShallowBlockIndex->GetAncestor(predecesorHeight);
         startingBlocksForPeriods.push_back(predecesor);
+        if(predecesor->GetMedianTimePast() <= bip_.nStartTime)
+        { 
+            if(!thresholdCache_.count(predecesor)) thresholdCache_[predecesor] = ThresholdState::DEFINED;
+            return;
+        }
         return getStartingBlocksForPeriodsPreceedingBlockIndex(predecesor,startingBlocksForPeriods);
     }
 }
