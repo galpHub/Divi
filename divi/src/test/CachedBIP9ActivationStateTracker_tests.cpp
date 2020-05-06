@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(willClaimToUpdateIfBlocksMeetThresholdAndPriorStateIsStarte
 
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
-        BOOST_CHECK(!activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
         BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::STARTED);
     }
     {
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(willClaimToUpdateIfBlocksMeetThresholdAndPriorStateIsStarte
 
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
-        BOOST_CHECK(!activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
         BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::LOCKED_IN);
     }
 }
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedStateToStartedStateOnlyIfMedianBlo
 
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
-        BOOST_CHECK(!activationStateTracker.update(fakeChain.at(bip.nPeriod)));
+        BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
         BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::STARTED);
     }
     {

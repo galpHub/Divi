@@ -44,9 +44,9 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
         return false;
     }
 
+    const CBlockIndex* blockIndexToCache = startingBlocksForPeriods.front();
     const CBlockIndex* lastBlockWithCachedState = startingBlocksForPeriods.back();
     startingBlocksForPeriods.pop_back();
-    bool stateTransitionOccurred = false;
 
     ThresholdState lastKnownState = thresholdCache_[lastBlockWithCachedState];
     for(auto it = startingBlocksForPeriods.rbegin(); it != startingBlocksForPeriods.rend(); ++it)
@@ -54,7 +54,6 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
         if(!bipIsViable_)
         {
             thresholdCache_[*it] = ThresholdState::FAILED;
-            stateTransitionOccurred |= true;
             continue;
         }
         switch(lastKnownState)
@@ -63,44 +62,33 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
                 if((*it)->GetMedianTimePast() >= bip_.nTimeout)
                 {
                     thresholdCache_[*it] = ThresholdState::FAILED;
-                    stateTransitionOccurred |= true;
                 }
                 else if((*it)->GetMedianTimePast() >= bip_.nStartTime)
                 {
                     thresholdCache_[*it] = ThresholdState::STARTED;
-                    stateTransitionOccurred |= true;
                 }
                 break;
             case ThresholdState::STARTED:
                 if((*it)->GetMedianTimePast() >= bip_.nTimeout)
                 {
                     thresholdCache_[*it] = ThresholdState::FAILED;
-                    stateTransitionOccurred |= true;
                 }
                 else if(enoughBipSignalsToLockIn(*it))
                 {
                     thresholdCache_[*it] = ThresholdState::LOCKED_IN;
-                    stateTransitionOccurred |= true;
                 }
                 
                 break;
             case ThresholdState::LOCKED_IN:
                 thresholdCache_[*it] = ThresholdState::ACTIVE;
-                stateTransitionOccurred |= true;
                 break;
-            case ThresholdState::FAILED:
-            case ThresholdState::ACTIVE:
+            case ThresholdState::FAILED: case ThresholdState::ACTIVE:
                 thresholdCache_[*it] = lastKnownState;
-                stateTransitionOccurred |= true;
-                break;
-            default:
-                thresholdCache_[*it] = lastKnownState;
-                stateTransitionOccurred |= false;
                 break;
         }
         lastKnownState = thresholdCache_[*it];
     }
-    return stateTransitionOccurred;
+    return thresholdCache_.count(blockIndexToCache)!=0;
 }
 
 void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBlockIndex(
