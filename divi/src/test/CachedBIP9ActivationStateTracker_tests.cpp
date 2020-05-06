@@ -379,4 +379,28 @@ BOOST_AUTO_TEST_CASE(willUpdateOnlyCacheEntriesAfterStartTime)
     BOOST_CHECK( cache.count(fakeChain.at(3*bip.nPeriod)) );
 }
 
+BOOST_AUTO_TEST_CASE(willUpdateAllCacheEntriesAfterStartTime)
+{
+    BIP9Deployment bip = createViableBipDeployment();
+    ThresholdConditionCache cache;
+    FakeBlockIndexChain fakeChain;
+    int32_t version = VERSIONBITS_TOP_BITS | ( (int32_t)1 << bip.bit);
+
+    fakeChain.extend(2*bip.nPeriod, bip.nStartTime - 1, 1 );
+    fakeChain.extend(bip.nPeriod, bip.nStartTime + 1, 1 );
+    fakeChain.extend(bip.nPeriod, bip.nStartTime + 1, version );
+    fakeChain.extend(bip.nPeriod, bip.nStartTime + 1, 1 );
+
+    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+    BOOST_CHECK(activationStateTracker.update(fakeChain.at(4*bip.nPeriod)));
+    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(4*bip.nPeriod))==ThresholdState::LOCKED_IN);
+    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::STARTED);
+    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(2*bip.nPeriod))==ThresholdState::DEFINED);
+    BOOST_CHECK( cache.count(fakeChain.at(bip.nPeriod))==0 );
+    BOOST_CHECK( cache.count(fakeChain.at(2*bip.nPeriod)) );
+    BOOST_CHECK( cache.count(fakeChain.at(3*bip.nPeriod)) );
+    BOOST_CHECK( cache.count(fakeChain.at(4*bip.nPeriod)) );
+}
+
 BOOST_AUTO_TEST_SUITE_END();
