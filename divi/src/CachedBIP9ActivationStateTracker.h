@@ -16,8 +16,8 @@ private:
     ThresholdConditionCache& thresholdCache_;
     const bool bipIsViable_;
 
+    const CBlockIndex* getMostRecentStartingBlock(const CBlockIndex* shallowBlockIndex) const;
     void getStartingBlocksForPeriodsPreceedingBlockIndex(
-        const CBlockIndex* currentShallowBlockIndex,
         std::vector<const CBlockIndex*>& startingBlocksForPeriods
         ) const;
     bool enoughBipSignalsToLockIn(const CBlockIndex* uncachedStartingBlockIndex) const;
