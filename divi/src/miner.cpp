@@ -137,6 +137,12 @@ void SetRequiredWork(CBlock& pblock)
     pblock.nBits = GetNextWorkRequired(pindexPrev, &pblock);
 }
 
+int64_t SetBlockTime(CBlock& pblock)
+{
+    pblock.nTime = GetAdjustedTime();
+    int64_t nSearchTime = pblock.nTime; // search to current time
+    return nSearchTime;
+}
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
     CReserveKey reservekey(pwallet);
