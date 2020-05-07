@@ -109,7 +109,7 @@ void AddTransactionToBlockAndSetDefaultFees(CBlock& pblock, unique_ptr<CBlockTem
 }
 
 bool CreateAndFindStake(
-    int64_t& nSearchTime, 
+    int64_t nSearchTime, 
     int64_t& nLastCoinStakeSearchTime, 
     CWallet& pwallet, 
     CBlock& pblock, 
@@ -163,17 +163,12 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
     if (fProofOfStake) {
         boost::this_thread::interruption_point();
-
         
         CMutableTransaction txCoinStake;
 
         SetRequiredWork(*pblock);
 
-        int64_t nSearchTime = SetBlockTime(*pblock); // search to current time
-
-        
-
-        if (!CreateAndFindStake(nSearchTime, nLastCoinStakeSearchTime, *pwallet, *pblock, txCoinStake))
+        if (!CreateAndFindStake(SetBlockTime(*pblock), nLastCoinStakeSearchTime, *pwallet, *pblock, txCoinStake))
             return NULL;
     }
 
