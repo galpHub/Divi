@@ -101,11 +101,40 @@ CMutableTransaction CreateCoinbaseTransaction(const CScript& scriptPubKeyIn)
     return txNew;
 }
 
-void AddTransactionToBlock(CBlock* pblock, unique_ptr<CBlockTemplate>& pblocktemplate, CMutableTransaction txNew)
+void AddTransactionToBlockAndSetDefaultFees(CBlock& pblock, unique_ptr<CBlockTemplate>& pblocktemplate, const CMutableTransaction& txNew)
 {
-    pblock->vtx.push_back(txNew);
+    pblock.vtx.push_back(txNew);
     pblocktemplate->vTxFees.push_back(-1);   // updated at end
     pblocktemplate->vTxSigOps.push_back(-1); // updated at end
+}
+
+bool CreateAndFindStake(
+    int64_t& nSearchTime, 
+    int64_t& nLastCoinStakeSearchTime, 
+    CWallet& pwallet, 
+    CBlock& pblock, 
+    CMutableTransaction& txCoinStake)
+{
+
+    bool fStakeFound = false;
+    if (nSearchTime >= nLastCoinStakeSearchTime) {
+        unsigned int nTxNewTime = 0;
+        if (pwallet.CreateCoinStake(pwallet, pblock.nBits, nSearchTime - nLastCoinStakeSearchTime, txCoinStake, nTxNewTime)) {
+            pblock.nTime = nTxNewTime;
+            pblock.vtx[0].vout[0].SetEmpty();
+            pblock.vtx.push_back(CTransaction(txCoinStake));
+            fStakeFound = true;
+        }
+        nLastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
+        nLastCoinStakeSearchTime = nSearchTime;
+    }
+    return fStakeFound;
+}
+
+void SetRequiredWork(CBlock& pblock)
+{
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    pblock.nBits = GetNextWorkRequired(pindexPrev, &pblock);
 }
 
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
@@ -121,7 +150,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     // Create coinbase tx
     CMutableTransaction txNew = CreateCoinbaseTransaction(scriptPubKeyIn);
     
-    AddTransactionToBlock(pblock, pblocktemplate, txNew);
+    AddTransactionToBlockAndSetDefaultFees(*pblock, pblocktemplate, txNew);
 
     // ppcoin: if coinstake available add coinstake tx
     static int64_t nLastCoinStakeSearchTime = GetAdjustedTime(); // only initialized at startup
@@ -129,27 +158,17 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     if (fProofOfStake) {
         boost::this_thread::interruption_point();
 
-        pblock->nTime = GetAdjustedTime();
-        CBlockIndex* pindexPrev = chainActive.Tip();
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
+        
         CMutableTransaction txCoinStake;
 
+        SetRequiredWork(*pblock);
+
+        pblock->nTime = GetAdjustedTime();
         int64_t nSearchTime = pblock->nTime; // search to current time
 
-        bool fStakeFound = false;
-        if (nSearchTime >= nLastCoinStakeSearchTime) {
-            unsigned int nTxNewTime = 0;
-            if (pwallet->CreateCoinStake(*pwallet, pblock->nBits, nSearchTime - nLastCoinStakeSearchTime, txCoinStake, nTxNewTime)) {
-                pblock->nTime = nTxNewTime;
-                pblock->vtx[0].vout[0].SetEmpty();
-                pblock->vtx.push_back(CTransaction(txCoinStake));
-                fStakeFound = true;
-            }
-            nLastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
-            nLastCoinStakeSearchTime = nSearchTime;
-        }
+        
 
-        if (!fStakeFound)
+        if (!CreateAndFindStake(nSearchTime, nLastCoinStakeSearchTime, *pwallet, *pblock, txCoinStake))
             return NULL;
     }
 
