@@ -169,8 +169,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
         SetRequiredWork(*pblock);
 
-        pblock->nTime = GetAdjustedTime();
-        int64_t nSearchTime = pblock->nTime; // search to current time
+        int64_t nSearchTime = SetBlockTime(*pblock); // search to current time
 
         
 
