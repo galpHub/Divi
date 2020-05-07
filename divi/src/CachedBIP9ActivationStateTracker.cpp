@@ -31,6 +31,8 @@ bool CachedBIP9ActivationStateTracker::enoughBipSignalsToLockIn(const CBlockInde
 
 bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockIndex)
 {
+    if(bip_.nStartTime==BIP9Deployment::ALWAYS_ACTIVE) return true;
+
     std::vector<const CBlockIndex*> startingBlocksForPeriods;
     if(shallowBlockIndex && (shallowBlockIndex->nHeight % bip_.nPeriod )==0) startingBlocksForPeriods.push_back(shallowBlockIndex);
     getStartingBlocksForPeriodsPreceedingBlockIndex(shallowBlockIndex,startingBlocksForPeriods);
@@ -112,6 +114,7 @@ void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBloc
 
 ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const
 {
+    if(bip_.nStartTime==BIP9Deployment::ALWAYS_ACTIVE) return ThresholdState::ACTIVE;
     if(!bipIsViable_)
     {
         return ThresholdState::FAILED;
