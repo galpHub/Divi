@@ -143,6 +143,15 @@ int64_t SetBlockTime(CBlock& pblock)
     int64_t nSearchTime = pblock.nTime; // search to current time
     return nSearchTime;
 }
+unsigned int GetMaxBlockSize(unsigned int defaultMaxBlockSize, unsigned int maxBlockSizeCurrent){
+    // Largest block you're willing to create:
+    unsigned int blockMaxSize = GetArg("-blockmaxsize", defaultMaxBlockSize);
+    // Limit to betweeen 1K and MAX_BLOCK_SIZE-1K for sanity:
+    unsigned int blockMaxSizeNetwork = maxBlockSizeCurrent;
+    blockMaxSize = std::max((unsigned int)1000, std::min((blockMaxSizeNetwork - 1000), blockMaxSize));
+    return blockMaxSize;
+}
+
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
     CReserveKey reservekey(pwallet);
