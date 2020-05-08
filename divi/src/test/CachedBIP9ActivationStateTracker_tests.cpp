@@ -115,6 +115,42 @@ BOOST_AUTO_TEST_CASE(willDeferToCachedStateAtApropriateHeight)
     }
 }
 
+BOOST_AUTO_TEST_CASE(willDeferToCachedStateInMostRecentStartingBlockIfMedianBlockTimesAreNotLessThanStartTime)
+{
+    
+    BIP9Deployment bip = createViableBipDeployment();
+    ThresholdConditionCache cache;
+    FakeBlockIndexChain fakeChain;
+    int fakeChainSize = 5*bip.nPeriod;
+    fakeChain.extend(fakeChainSize, bip.nStartTime, 0);
+    cache[fakeChain.at(bip.nPeriod)] = ThresholdState::FAILED;
+    cache[fakeChain.at(4*bip.nPeriod)] = ThresholdState::ACTIVE;
+
+    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+    for(int height = 0; height < bip.nPeriod; height++)
+    {
+        BOOST_CHECK_MESSAGE(
+            activationStateTracker
+                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::DEFINED,
+            "The height is" << height);
+    }
+    for(int height = bip.nPeriod; height < 4*bip.nPeriod; height++)
+    {
+        BOOST_CHECK_MESSAGE(
+            activationStateTracker
+                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::FAILED,
+            "The height is" << height);
+    }
+    for(int height = 4*bip.nPeriod; height < fakeChainSize; height++)
+    {
+        BOOST_CHECK_MESSAGE(
+            activationStateTracker
+                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::ACTIVE,
+            "The height is" << height);
+    }
+}
+
 BOOST_AUTO_TEST_CASE(willNotChangeStateIfMedianBlockTimesArentMonotoneIncreasing)
 {
     BIP9Deployment bip = createViableBipDeployment();
