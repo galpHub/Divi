@@ -405,3 +405,365 @@ BOOST_AUTO_TEST_CASE(willUpdateAllCacheEntriesAfterStartTime)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
+
+
+#include <random.h>
+#include <memory>
+#include <utility>
+
+namespace VersionBitsHybrid
+{
+static int32_t TestTime(int nHeight) { return 1415926536 + 600 * nHeight; }
+
+struct RandomnessProvider
+{
+private:
+    FastRandomContext context_;
+public:
+    RandomnessProvider(): context_(true) {}
+    uint32_t InsecureRandBits(int bits)
+    {
+        assert(bits>-1);
+        return context_.rand32() & ( (uint32_t)1 << bits);
+    }
+};
+
+static BIP9Deployment createDummyBIP(std::string name = std::string("DummyDeployment"))
+{
+    return BIP9Deployment(name, 0 , TestTime(10000),TestTime(20000),1000,900);
+}
+
+struct TestCachedBIP9ActivationStateTracker: public CachedBIP9ActivationStateTracker
+{
+    TestCachedBIP9ActivationStateTracker(
+        const BIP9Deployment& bip,
+        ThresholdConditionCache& thresholdCache
+        ): CachedBIP9ActivationStateTracker(bip,thresholdCache) 
+    {
+    }
+
+    virtual bool bipIsSignaledFor(const CBlockIndex* pindex) const
+    {
+        return (pindex->nVersion & 0x100);
+    }
+};
+}
+
+class TestWrapper
+{
+private:
+    int n;
+    BIP9Deployment dummyDeployment;
+    ThresholdConditionCache cache;
+public:
+    std::shared_ptr<I_BIP9ActivationStateTracker> tracker;
+    std::vector<const CBlockIndex*> fakeChain;
+    bool debug;
+    int testCounter;
+
+    void clearFakeChain()
+    {
+        for(auto ptr: fakeChain)
+        {
+            delete ptr;
+        }
+        fakeChain.clear();
+    }
+
+    TestWrapper(
+        unsigned randomnessBit = -1,
+        bool shouldDebug =false,
+        bool makeAlwaysActive = false
+        ): n(randomnessBit)
+        , dummyDeployment(VersionBitsHybrid::createDummyBIP())
+        , cache()
+        , tracker(std::make_shared<VersionBitsHybrid::TestCachedBIP9ActivationStateTracker>(dummyDeployment,cache))
+        , fakeChain()
+        , debug(shouldDebug)
+        , testCounter(0)
+    {
+        if(makeAlwaysActive)
+        {
+            *const_cast<int64_t*>(&dummyDeployment.nStartTime) = BIP9Deployment::ALWAYS_ACTIVE;
+        }
+    }
+
+    TestWrapper& operator=(const TestWrapper& other)
+    {
+        dummyDeployment = other.dummyDeployment;
+        cache = other.cache;
+        tracker.reset(new VersionBitsHybrid::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
+        fakeChain = other.fakeChain;
+        debug = other.debug;
+        testCounter =other.testCounter;
+        return *this;
+    }
+
+    ~TestWrapper()
+    {
+        clearFakeChain();
+    }
+
+    TestWrapper& Reset()
+    {
+        clearFakeChain();
+        cache.clear();
+        tracker.reset(new VersionBitsHybrid::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
+        return *this;
+    }
+
+    TestWrapper& Mine(unsigned newHeight,int32_t blockTime, int32_t blockVersion)
+    {
+        FakeBlockIndexChain::extendFakeBlockIndexChain(newHeight+1,blockTime,blockVersion,fakeChain);
+        return *this;
+    }
+    TestWrapper& TestState(ThresholdState state)
+    {
+        static VersionBitsHybrid::RandomnessProvider rand;
+        if( n > -1 && rand.InsecureRandBits(n % 32)) return *this;
+        if(fakeChain.size())
+        {
+            BOOST_CHECK_MESSAGE( tracker->update(fakeChain.back()), "Update failed!");
+            if(debug)
+            {
+                if(fakeChain.back() && (fakeChain.back()->nHeight % dummyDeployment.nPeriod) ==0 )
+                {
+                    BOOST_CHECK_MESSAGE( cache.count(fakeChain.back()), "Update unsuccessful at test " << testCounter);
+                    BOOST_CHECK_MESSAGE( !cache.count(fakeChain.back()), "The update succeeded at height "<< fakeChain.back()->nHeight <<" at test " << testCounter);
+                }
+                else if(fakeChain.back())
+                {
+                    BOOST_CHECK_MESSAGE( false, "Tip is at height " << fakeChain.back()->nHeight << " during test "<< testCounter);
+                }
+                else if(!fakeChain.back())
+                {
+                    BOOST_CHECK_MESSAGE( false, "Tip is null at " << testCounter);
+                }
+            }
+
+            if(!debug)
+            {
+                BOOST_CHECK(tracker->getStateAtBlockIndex(fakeChain.back()) == state);
+                testCounter++;
+            }
+            else
+            {
+                BOOST_CHECK_MESSAGE(false, "In non-empty chain: (height)" << fakeChain.back()->nHeight << "  (test)" << testCounter);
+                auto result = tracker->getStateAtBlockIndex(fakeChain.back());
+                BOOST_CHECK_MESSAGE(
+                    result == state, 
+                    "Comparing: (statecode)" << static_cast<int>(result)
+                    << " vs " << static_cast<int>(state) << " || testCounter: " << testCounter);
+                testCounter++;
+            }
+            
+        }
+        else
+        {
+            if(!debug)
+            {
+                BOOST_CHECK(tracker->getStateAtBlockIndex(NULL) == state);
+                testCounter++;
+            }
+            else
+            {
+                BOOST_CHECK_MESSAGE(false, "In empty chain" );
+                auto result = tracker->getStateAtBlockIndex(NULL) ;
+                BOOST_CHECK_MESSAGE(
+                    result == state, 
+                    "Comparing: (statecode)" << static_cast<int>(result)
+                    << " vs " << static_cast<int>(state) << " || testCounter: " << testCounter);
+                testCounter++;
+            }
+        }
+        return *this;
+    }
+
+    const ThresholdConditionCache& getCache() const
+    {
+        return cache;
+    }
+
+    TestWrapper& TestDefined()
+    {
+        return TestState(ThresholdState::DEFINED);
+    }
+    TestWrapper& TestStarted()
+    {
+        return TestState(ThresholdState::STARTED);
+    }
+    TestWrapper& TestLockedIn()
+    {
+        return TestState(ThresholdState::LOCKED_IN);
+    }
+    TestWrapper& TestFailed()
+    {
+        return TestState(ThresholdState::FAILED);
+    }
+    TestWrapper& TestActive()
+    {
+        return TestState(ThresholdState::ACTIVE);
+    }
+
+    TestWrapper& TestStateSinceHeight(int height)
+    {
+        return *this;
+    }
+};
+
+
+BOOST_AUTO_TEST_SUITE(expanded_versionbits_tests)
+
+
+BOOST_AUTO_TEST_CASE(DefinedToFailed1)
+{
+    using namespace VersionBitsHybrid;
+
+    TestWrapper test;
+    test.TestDefined();
+    test.Mine(1, TestTime(1), 0x100).TestDefined();
+    test.Mine(11, TestTime(11), 0x100).TestDefined();
+    test.Mine(989, TestTime(989), 0x100).TestDefined();
+    test.Mine(999, TestTime(20000), 0x100).TestDefined();
+    test.Mine(1000, TestTime(20000), 0x100).TestFailed();
+    test.Mine(1999, TestTime(30001), 0x100).TestFailed();
+    test.Mine(2000, TestTime(30002), 0x100).TestFailed();
+    test.Mine(2001, TestTime(30003), 0x100).TestFailed();
+    test.Mine(2999, TestTime(30004), 0x100).TestFailed();
+    test.Mine(3000, TestTime(30005), 0x100).TestFailed();
+}
+
+BOOST_AUTO_TEST_CASE(DefinedToStartedToFailed)
+{
+    using namespace VersionBitsHybrid;
+
+    TestWrapper test;
+    test.TestDefined();
+    test.Mine(1, TestTime(1), 0).TestDefined();         
+    test.Mine(1000, TestTime(10000) - 1, 0x100).TestDefined();// One second more and it would be defined
+    test.Mine(2000, TestTime(10000), 0x100).TestStarted();   // So that's what happens the next period
+    test.Mine(2051, TestTime(10010), 0).TestStarted();   // 51 old blocks
+    test.Mine(2950, TestTime(10020), 0x100).TestStarted();   // 899 new blocks
+    test.Mine(3000, TestTime(20000), 0).TestFailed();   // 50 old blocks (so 899 out of the past 1000)
+    test.Mine(4000, TestTime(20010), 0x100).TestFailed();  
+}
+
+BOOST_AUTO_TEST_CASE(DefinedToStartedToFailedAndThresholdReached)
+{
+    using namespace VersionBitsHybrid;
+    TestWrapper test;
+
+    test.TestDefined();
+    test.Mine(1, TestTime(1), 0).TestDefined();
+    test.Mine(1000, TestTime(10000) - 1, 0x101).TestDefined();// One second more and it would be defined
+    test.Mine(2000, TestTime(10000), 0x101).TestStarted();   // So that's what happens the next period
+    test.Mine(2999, TestTime(30000), 0x100).TestStarted();   // 999 new blocks
+    test.Mine(3000, TestTime(30000), 0x100).TestFailed();   // 1 new block (so 1000 out of the past 1000 are new)
+    test.Mine(3999, TestTime(30001), 0).TestFailed();  
+    test.Mine(4000, TestTime(30002), 0).TestFailed();  
+    test.Mine(14333, TestTime(30003), 0).TestFailed();  
+    test.Mine(24000, TestTime(40000), 0).TestFailed();  
+}
+
+BOOST_AUTO_TEST_CASE(DefinedToStartedToLockInToActive)
+{
+    using namespace VersionBitsHybrid;
+
+    TestWrapper test;
+    test.TestDefined().Mine(1, TestTime(1), 0).TestDefined();
+    test.Mine(1000, TestTime(10000) - 1, 0x101).TestDefined();
+    test.Mine(2000, TestTime(10000), 0x101).TestStarted();
+    test.Mine(2050, TestTime(10010), 0x200).TestStarted();
+    test.Mine(2950, TestTime(10020), 0x100).TestStarted();
+    test.Mine(2999, TestTime(19999), 0x200).TestStarted();
+    test.Mine(3999, TestTime(30001), 0).TestLockedIn();
+    test.Mine(4000, TestTime(30002), 0).TestActive();
+    test.Mine(14333, TestTime(30003), 0).TestActive();
+    test.Mine(24000, TestTime(40000), 0).TestActive();
+
+}
+
+BOOST_AUTO_TEST_CASE(MultipleStartsAndMultipleFails)
+{
+    using namespace VersionBitsHybrid;
+
+    TestWrapper test(false);
+    test.TestDefined();   
+    test.Mine(999, TestTime(999), 0).TestDefined();   
+    test.Mine(1000, TestTime(1000), 0).TestDefined();   
+    test.Mine(2000, TestTime(2000), 0).TestDefined();   
+    test.Mine(3000, TestTime(10000), 0).TestStarted();
+    test.Mine(4000, TestTime(10000), 0).TestStarted();
+    test.Mine(5000, TestTime(10000), 0).TestStarted();
+    test.Mine(6000, TestTime(20000), 0).TestFailed();
+    test.Mine(7000, TestTime(20000), 0x100).TestFailed();
+}
+
+BOOST_AUTO_TEST_CASE(expanded_versionbits_tests)
+{
+    using namespace VersionBitsHybrid;
+    for (int i = 0; i < 64; i++) {
+        // DEFINED -> FAILED
+        TestWrapper(i).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1, TestTime(1), 0x100).TestDefined().TestStateSinceHeight(0)
+                           .Mine(11, TestTime(11), 0x100).TestDefined().TestStateSinceHeight(0)
+                           .Mine(989, TestTime(989), 0x100).TestDefined().TestStateSinceHeight(0)
+                           .Mine(999, TestTime(20000), 0x100).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(1000)
+                           .Mine(1999, TestTime(30001), 0x100).TestFailed().TestStateSinceHeight(1000)
+                           .Mine(2000, TestTime(30002), 0x100).TestFailed().TestStateSinceHeight(1000)
+                           .Mine(2001, TestTime(30003), 0x100).TestFailed().TestStateSinceHeight(1000)
+                           .Mine(2999, TestTime(30004), 0x100).TestFailed().TestStateSinceHeight(1000)
+                           .Mine(3000, TestTime(30005), 0x100).TestFailed().TestStateSinceHeight(1000)
+
+        // DEFINED -> STARTED -> FAILED
+                           .Reset().TestDefined().TestStateSinceHeight(0)
+                           .Mine(1, TestTime(1), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(10000) - 1, 0x100).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
+                           .Mine(2000, TestTime(10000), 0x100).TestStarted().TestStateSinceHeight(2000) // So that's what happens the next period
+                           .Mine(2051, TestTime(10010), 0).TestStarted().TestStateSinceHeight(2000) // 51 old blocks
+                           .Mine(2950, TestTime(10020), 0x100).TestStarted().TestStateSinceHeight(2000) // 899 new blocks
+                           .Mine(3000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(3000) // 50 old blocks (so 899 out of the past 1000)
+                           .Mine(4000, TestTime(20010), 0x100).TestFailed().TestStateSinceHeight(3000)
+
+        // DEFINED -> STARTED -> FAILED while threshold reached
+                           .Reset().TestDefined().TestStateSinceHeight(0)
+                           .Mine(1, TestTime(1), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(10000) - 1, 0x101).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
+                           .Mine(2000, TestTime(10000), 0x101).TestStarted().TestStateSinceHeight(2000) // So that's what happens the next period
+                           .Mine(2999, TestTime(30000), 0x100).TestStarted().TestStateSinceHeight(2000) // 999 new blocks
+                           .Mine(3000, TestTime(30000), 0x100).TestFailed().TestStateSinceHeight(3000) // 1 new block (so 1000 out of the past 1000 are new)
+                           .Mine(3999, TestTime(30001), 0).TestFailed().TestStateSinceHeight(3000)
+                           .Mine(4000, TestTime(30002), 0).TestFailed().TestStateSinceHeight(3000)
+                           .Mine(14333, TestTime(30003), 0).TestFailed().TestStateSinceHeight(3000)
+                           .Mine(24000, TestTime(40000), 0).TestFailed().TestStateSinceHeight(3000)
+
+        // DEFINED -> STARTED -> LOCKEDIN at the last minute -> ACTIVE
+                           .Reset().TestDefined()
+                           .Mine(1, TestTime(1), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(10000) - 1, 0x101).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
+                           .Mine(2000, TestTime(10000), 0x101).TestStarted().TestStateSinceHeight(2000) // So that's what happens the next period
+                           .Mine(2050, TestTime(10010), 0x200).TestStarted().TestStateSinceHeight(2000) // 50 old blocks
+                           .Mine(2950, TestTime(10020), 0x100).TestStarted().TestStateSinceHeight(2000) // 900 new blocks
+                           .Mine(2999, TestTime(19999), 0x200).TestStarted().TestStateSinceHeight(2000) // 49 old blocks
+                           .Mine(3000, TestTime(29999), 0x200).TestLockedIn().TestStateSinceHeight(3000) // 1 old block (so 900 out of the past 1000)
+                           .Mine(3999, TestTime(30001), 0).TestLockedIn().TestStateSinceHeight(3000)
+                           .Mine(4000, TestTime(30002), 0).TestActive().TestStateSinceHeight(4000)
+                           .Mine(14333, TestTime(30003), 0).TestActive().TestStateSinceHeight(4000)
+                           .Mine(24000, TestTime(40000), 0).TestActive().TestStateSinceHeight(4000)
+
+        // DEFINED multiple periods -> STARTED multiple periods -> FAILED
+                           .Reset().TestDefined().TestStateSinceHeight(0)
+                           .Mine(999, TestTime(999), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(1000), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(2000, TestTime(2000), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(3000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
+                           .Mine(4000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
+                           .Mine(5000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
+                           .Mine(6000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(6000)
+                           .Mine(7000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000);
+    }
+
+}
+
+BOOST_AUTO_TEST_SUITE_END();
