@@ -11,12 +11,16 @@ public:
     void resetFakeChain();
     FakeBlockIndexChain();
     ~FakeBlockIndexChain();
-    void extend(
-        unsigned maxHeight,
+    void extendTo(
+        unsigned heightAtTip,
+        int32_t time,
+        int32_t version);
+    void extendBy(
+        unsigned additionalBlocks,
         int32_t time,
         int32_t version);
     static void extendFakeBlockIndexChain(
-        unsigned height,
+        unsigned totalNumberOfBlocks,
         int32_t time,
         int32_t version,
         std::vector<const CBlockIndex*>& currentChain

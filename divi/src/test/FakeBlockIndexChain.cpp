@@ -17,23 +17,32 @@ FakeBlockIndexChain::~FakeBlockIndexChain()
 {
     resetFakeChain();
 }
-void FakeBlockIndexChain::extend(
-    unsigned maxHeight,
+
+void FakeBlockIndexChain::extendTo(
+    unsigned heightAtTip,
     int32_t time,
     int32_t version)
 {
-    unsigned newHeight = fakeChain.size()+maxHeight;
-    fakeChain.reserve( newHeight );
-    extendFakeBlockIndexChain(newHeight,time,version,fakeChain);
+    fakeChain.reserve(heightAtTip+1);
+    extendFakeBlockIndexChain(heightAtTip+1,time,version,fakeChain);
 }
+void FakeBlockIndexChain::extendBy(
+    unsigned additionalBlocks,
+    int32_t time,
+    int32_t version)
+{
+    unsigned heightAtTip = fakeChain.size()+additionalBlocks - 1;
+    extendTo(heightAtTip,time,version);
+}
+
 void FakeBlockIndexChain::extendFakeBlockIndexChain(
-    unsigned height,
+    unsigned totalNumberOfBlocks,
     int32_t time,
     int32_t version,
     std::vector<const CBlockIndex*>& currentChain
     )
 {
-    while(currentChain.size() < height)
+    while(currentChain.size() < totalNumberOfBlocks)
     {
         CBlockIndex* pindex = new CBlockIndex();
         pindex->nHeight = currentChain.size();
@@ -52,5 +61,5 @@ const CBlockIndex* FakeBlockIndexChain::at(unsigned height) const
 
  const CBlockIndex* FakeBlockIndexChain::tip() const
  {
-     return fakeChain.back();
+     return fakeChain.empty()? NULL: fakeChain.back();
  }
