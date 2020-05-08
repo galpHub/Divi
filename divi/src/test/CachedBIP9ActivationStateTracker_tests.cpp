@@ -458,7 +458,6 @@ private:
 public:
     std::shared_ptr<I_BIP9ActivationStateTracker> tracker;
     std::vector<const CBlockIndex*> fakeChain;
-    bool debug;
     int testCounter;
 
     void clearFakeChain()
@@ -470,16 +469,14 @@ public:
         fakeChain.clear();
     }
 
-    TestWrapper(
-        unsigned randomnessBit = -1,
-        bool shouldDebug =false,
+    explicit TestWrapper(
+        int randomnessBit = -1,
         bool makeAlwaysActive = false
         ): n(randomnessBit)
         , dummyDeployment(VersionBitsHybrid::createDummyBIP())
         , cache()
         , tracker(std::make_shared<VersionBitsHybrid::TestCachedBIP9ActivationStateTracker>(dummyDeployment,cache))
         , fakeChain()
-        , debug(shouldDebug)
         , testCounter(0)
     {
         if(makeAlwaysActive)
@@ -494,7 +491,6 @@ public:
         cache = other.cache;
         tracker.reset(new VersionBitsHybrid::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
         fakeChain = other.fakeChain;
-        debug = other.debug;
         testCounter =other.testCounter;
         return *this;
     }
@@ -643,7 +639,7 @@ BOOST_AUTO_TEST_CASE(MultipleStartsAndMultipleFails)
 {
     using namespace VersionBitsHybrid;
 
-    TestWrapper test(false);
+    TestWrapper test;
     test.TestDefined();   
     test.Mine(999, TestTime(999), 0).TestDefined();   
     test.Mine(1000, TestTime(1000), 0).TestDefined();   
