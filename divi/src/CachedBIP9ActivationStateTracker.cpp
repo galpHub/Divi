@@ -122,6 +122,8 @@ void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBloc
         }
         if(predecesor->GetMedianTimePast() < bip_.nStartTime)
         { 
+            if(thresholdCache_.count(startingBlocksForPeriods.back())) return;
+            
             thresholdCache_[startingBlocksForPeriods.back()] = ThresholdState::DEFINED;
             return;
         }

@@ -49,3 +49,8 @@ const CBlockIndex* FakeBlockIndexChain::at(unsigned height) const
 {
     return fakeChain[height];
 }
+
+ const CBlockIndex* FakeBlockIndexChain::tip() const
+ {
+     return fakeChain.back();
+ }

@@ -115,28 +115,30 @@ BOOST_AUTO_TEST_CASE(willDeferToCachedStateAtApropriateHeight)
     }
 }
 
-BOOST_AUTO_TEST_CASE(willRevertToDefinedStateWhenMedianBlockTimesPreceedBIPStartTime)
+BOOST_AUTO_TEST_CASE(willNotChangeStateIfMedianBlockTimesArentMonotoneIncreasing)
 {
     BIP9Deployment bip = createViableBipDeployment();
     ThresholdConditionCache cache;
     FakeBlockIndexChain fakeChain;
-    int fakeChainSize = 4*bip.nPeriod;
-    fakeChain.extend(fakeChainSize, bip.nStartTime - 1, 0);
     CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
     
-    {
-        BOOST_CHECK(
-            activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(fakeChainSize-1))==ThresholdState::DEFINED);
-    }
-    {
-        cache.clear();
-        cache[fakeChain.at(bip.nPeriod)] = ThresholdState::FAILED;
-        cache[fakeChain.at(2*bip.nPeriod)] = ThresholdState::ACTIVE;
-        BOOST_CHECK(
-            activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::DEFINED);
-    }
+    fakeChain.extend(bip.nPeriod, bip.nStartTime - 1, 0); // Stays In Defined
+    fakeChain.extend(bip.nPeriod, bip.nStartTime, 0); // Moves to started
+    fakeChain.extend(bip.nPeriod, bip.nStartTime,  VERSIONBITS_TOP_BITS | ( (int32_t)1 << bip.bit) ); // Moves To LOCKED_IN
+    fakeChain.extend(bip.nPeriod - CBlockIndex::nMedianTimeSpan, bip.nStartTime,  0); // Moves To ACTIVE
+    activationStateTracker.update(fakeChain.tip());
+
+    fakeChain.extend(1+CBlockIndex::nMedianTimeSpan, bip.nStartTime-1, 0); // Attemps to reverse BIP9 by publishing old blocks
+    activationStateTracker.update(fakeChain.tip());
+
+    fakeChain.extend(bip.nPeriod, bip.nStartTime+1, 0); // Reverts To Defined
+    activationStateTracker.update(fakeChain.tip());
+
+    ThresholdState result = activationStateTracker.getStateAtBlockIndex(fakeChain.tip());
+    BOOST_CHECK_MESSAGE(
+        result == ThresholdState::ACTIVE,
+        "Actual: " << static_cast<int>(result) << " vs. Expected " << static_cast<int>(ThresholdState::ACTIVE)
+    );
 }
 
 BOOST_AUTO_TEST_CASE(willDetectBlockSignalsForBip)

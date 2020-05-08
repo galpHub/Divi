@@ -22,5 +22,6 @@ public:
         std::vector<const CBlockIndex*>& currentChain
         );
     const CBlockIndex* at(unsigned int) const;
+    const CBlockIndex* tip() const;
 };
 #endif //FAKE_BLOCK_INDEX_CHAIN_H
