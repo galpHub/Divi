@@ -167,6 +167,82 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
     return blockMinSize;
 }
 
+void CalculatePriority( map<uint256, vector<COrphan*> >& mapDependers, list<COrphan>& vOrphan, CCoinsViewCache& view, int& nHeight) {
+    vector<TxPriority> vecPriority;
+    vecPriority.reserve(mempool.mapTx.size());
+    for (map<uint256, CTxMemPoolEntry>::iterator mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi) {
+        const CTransaction& tx = mi->second.GetTx();
+        if (tx.IsCoinBase() || tx.IsCoinStake() || !IsFinalTx(tx, nHeight)){
+            continue;
+        }
+
+        COrphan* porphan = NULL;
+        double dPriority = 0;
+        CAmount nTotalIn = 0;
+        bool fMissingInputs = false;
+        for (const CTxIn& txin : tx.vin) {
+
+            // Read prev transaction
+            if (!view.HaveCoins(txin.prevout.hash)) {
+                // This should never happen; all transactions in the memory
+                // pool should connect to either transactions in the chain
+                // or other transactions in the memory pool.
+                if (!mempool.mapTx.count(txin.prevout.hash)) {
+                    LogPrintf("ERROR: mempool transaction missing input\n");
+                    if (fDebug) assert("mempool transaction missing input" == 0);
+                    fMissingInputs = true;
+                    if (porphan)
+                        vOrphan.pop_back();
+                    break;
+                }
+
+                // Has to wait for dependencies
+                if (!porphan) {
+                    // Use list for automatic deletion
+                    vOrphan.push_back(COrphan(&tx));
+                    porphan = &vOrphan.back();
+                }
+                mapDependers[txin.prevout.hash].push_back(porphan);
+                porphan->setDependsOn.insert(txin.prevout.hash);
+                nTotalIn += mempool.mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
+                continue;
+            }
+
+            //Check for invalid/fraudulent inputs. They shouldn't make it through mempool, but check anyways.
+            if (mapInvalidOutPoints.count(txin.prevout)) {
+                LogPrintf("%s : found invalid input %s in tx %s", __func__, txin.prevout.ToString(), tx.GetHash().ToString());
+                fMissingInputs = true;
+                break;
+            }
+
+            const CCoins* coins = view.AccessCoins(txin.prevout.hash);
+            assert(coins);
+
+            CAmount nValueIn = coins->vout[txin.prevout.n].nValue;
+            nTotalIn += nValueIn;
+
+            int nConf = nHeight - coins->nHeight;
+
+            dPriority += (double)nValueIn * nConf;
+        }
+        if (fMissingInputs) continue;
+
+        // Priority is sum(valuein * age) / modified_txsize
+        unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
+        dPriority = tx.ComputePriority(dPriority, nTxSize);
+
+        uint256 hash = tx.GetHash();
+        mempool.ApplyDeltas(hash, dPriority, nTotalIn);
+
+        CFeeRate feeRate(nTotalIn - tx.GetValueOut(), nTxSize);
+
+        if (porphan) {
+            porphan->dPriority = dPriority;
+            porphan->feeRate = feeRate;
+        } else
+            vecPriority.push_back(TxPriority(dPriority, feeRate, &mi->second.GetTx()));
+    }
+}
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
     CReserveKey reservekey(pwallet);
@@ -214,7 +290,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         LOCK2(cs_main, mempool.cs);
 
         CBlockIndex* pindexPrev = chainActive.Tip();
+
         const int nHeight = pindexPrev->nHeight + 1;
+
         CCoinsViewCache view(pcoinsTip);
 
         // Priority order to process transactions
