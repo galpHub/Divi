@@ -115,13 +115,13 @@ BOOST_AUTO_TEST_CASE(willDeferToCachedStateAtApropriateHeight)
     }
 }
 
-BOOST_AUTO_TEST_CASE(willGetMostRecentCachedState)
+BOOST_AUTO_TEST_CASE(willRevertToDefinedStateWhenMedianBlockTimesPreceedBIPStartTime)
 {
     BIP9Deployment bip = createViableBipDeployment();
     ThresholdConditionCache cache;
     FakeBlockIndexChain fakeChain;
     int fakeChainSize = 4*bip.nPeriod;
-    fakeChain.extend(fakeChainSize, 0, 0);
+    fakeChain.extend(fakeChainSize, bip.nStartTime - 1, 0);
     CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
     
     {
@@ -132,10 +132,10 @@ BOOST_AUTO_TEST_CASE(willGetMostRecentCachedState)
     {
         cache.clear();
         cache[fakeChain.at(bip.nPeriod)] = ThresholdState::FAILED;
-        cache[fakeChain.at(3*bip.nPeriod)] = ThresholdState::ACTIVE;
+        cache[fakeChain.at(2*bip.nPeriod)] = ThresholdState::ACTIVE;
         BOOST_CHECK(
             activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(fakeChainSize-1))==ThresholdState::ACTIVE);
+                .getStateAtBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::DEFINED);
     }
 }
 
