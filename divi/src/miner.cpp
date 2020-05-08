@@ -160,6 +160,13 @@ unsigned int GetBlockPrioritySize(unsigned int defaultBlockPrioritySize, unsigne
     return blockPrioritySize;
 }
 
+unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int blockMaxSize)
+{
+    unsigned int blockMinSize = GetArg("-blockminsize", defaultBlockMinSize);
+    blockMinSize = std::min(blockMaxSize, blockMinSize);
+    return blockMinSize;
+}
+
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
     CReserveKey reservekey(pwallet);
