@@ -152,10 +152,12 @@ BOOST_AUTO_TEST_CASE(willDetectBlockSignalsForBip)
     fakeChain.extend(1, 0, VERSIONBITS_TOP_BITS );
     fakeChain.extend(1, 0,  VERSIONBITS_TOP_BITS | bipMask );
     fakeChain.extend(1, 0, VERSIONBITS_TOP_BITS | ( bipMask << 1 ) );
+    fakeChain.extend(1, 0, VERSIONBITS_TOP_BITS | ( bipMask << 1 ) | bipMask );
     
     BOOST_CHECK(!activationStateTracker.bipIsSignaledFor(fakeChain.at(0)));
     BOOST_CHECK(activationStateTracker.bipIsSignaledFor(fakeChain.at(1)));
     BOOST_CHECK(!activationStateTracker.bipIsSignaledFor(fakeChain.at(2)));
+    BOOST_CHECK(activationStateTracker.bipIsSignaledFor(fakeChain.at(3)));
 }
 
 
