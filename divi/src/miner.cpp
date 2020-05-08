@@ -167,7 +167,7 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
     return blockMinSize;
 }
 
-void CalculatePriority( map<uint256, vector<COrphan*> >& mapDependers, list<COrphan>& vOrphan, CCoinsViewCache& view, int& nHeight) {
+vector<TxPriority> CalculatePriority( map<uint256, vector<COrphan*> >& mapDependers, list<COrphan>& vOrphan, CCoinsViewCache& view, int& nHeight) {
     vector<TxPriority> vecPriority;
     vecPriority.reserve(mempool.mapTx.size());
     for (map<uint256, CTxMemPoolEntry>::iterator mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi) {
@@ -242,6 +242,7 @@ void CalculatePriority( map<uint256, vector<COrphan*> >& mapDependers, list<COrp
         } else
             vecPriority.push_back(TxPriority(dPriority, feeRate, &mi->second.GetTx()));
     }
+    return vecPriority;
 }
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
