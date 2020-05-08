@@ -205,8 +205,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
     // Minimum block size you want to create; block will be filled with free transactions
     // until there are no more or the block reaches this size:
-    unsigned int nBlockMinSize = GetArg("-blockminsize", DEFAULT_BLOCK_MIN_SIZE);
-    nBlockMinSize = std::min(nBlockMaxSize, nBlockMinSize);
+    unsigned int nBlockMinSize = GetBlockMinSize(DEFAULT_BLOCK_MIN_SIZE, nBlockMaxSize);
 
     // Collect memory pool transactions into the block
     CAmount nFees = 0;
