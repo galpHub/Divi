@@ -521,61 +521,17 @@ public:
     {
         static VersionBitsHybrid::RandomnessProvider rand;
         if( n > -1 && rand.InsecureRandBits(n % 32)) return *this;
-        if(fakeChain.size())
-        {
-            BOOST_CHECK_MESSAGE( tracker->update(fakeChain.back()), "Update failed!");
-            if(debug)
-            {
-                if(fakeChain.back() && (fakeChain.back()->nHeight % dummyDeployment.nPeriod) ==0 )
-                {
-                    BOOST_CHECK_MESSAGE( cache.count(fakeChain.back()), "Update unsuccessful at test " << testCounter);
-                    BOOST_CHECK_MESSAGE( !cache.count(fakeChain.back()), "The update succeeded at height "<< fakeChain.back()->nHeight <<" at test " << testCounter);
-                }
-                else if(fakeChain.back())
-                {
-                    BOOST_CHECK_MESSAGE( false, "Tip is at height " << fakeChain.back()->nHeight << " during test "<< testCounter);
-                }
-                else if(!fakeChain.back())
-                {
-                    BOOST_CHECK_MESSAGE( false, "Tip is null at " << testCounter);
-                }
-            }
 
-            if(!debug)
-            {
-                BOOST_CHECK(tracker->getStateAtBlockIndex(fakeChain.back()) == state);
-                testCounter++;
-            }
-            else
-            {
-                BOOST_CHECK_MESSAGE(false, "In non-empty chain: (height)" << fakeChain.back()->nHeight << "  (test)" << testCounter);
-                auto result = tracker->getStateAtBlockIndex(fakeChain.back());
-                BOOST_CHECK_MESSAGE(
-                    result == state, 
-                    "Comparing: (statecode)" << static_cast<int>(result)
-                    << " vs " << static_cast<int>(state) << " || testCounter: " << testCounter);
-                testCounter++;
-            }
-            
-        }
-        else
-        {
-            if(!debug)
-            {
-                BOOST_CHECK(tracker->getStateAtBlockIndex(NULL) == state);
-                testCounter++;
-            }
-            else
-            {
-                BOOST_CHECK_MESSAGE(false, "In empty chain" );
-                auto result = tracker->getStateAtBlockIndex(NULL) ;
-                BOOST_CHECK_MESSAGE(
-                    result == state, 
-                    "Comparing: (statecode)" << static_cast<int>(result)
-                    << " vs " << static_cast<int>(state) << " || testCounter: " << testCounter);
-                testCounter++;
-            }
-        }
+        const CBlockIndex* blockToUpdate = fakeChain.size()? fakeChain.back(): NULL;
+
+        BOOST_CHECK_MESSAGE( tracker->update(blockToUpdate), "Update failed!");
+
+        ThresholdState result = tracker->getStateAtBlockIndex(blockToUpdate);
+        BOOST_CHECK_MESSAGE(
+            result == state, 
+            "Comparing: (statecode)" << static_cast<int>(result)
+            << " vs " << static_cast<int>(state) << " || testCounter: " << testCounter);
+        testCounter++;
         return *this;
     }
 
