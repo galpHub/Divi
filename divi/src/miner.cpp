@@ -179,7 +179,6 @@ private:
         pblock.nAccumulatorCheckpoint = static_cast<uint256>(0);
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock.vtx[0]);
     }
-
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
@@ -394,13 +393,7 @@ public:
         }
 
         // Fill in header
-        pblock.hashPrevBlock = pindexPrev->GetBlockHash();
-        if (!fProofOfStake)
-            UpdateTime(&pblock, pindexPrev);
-        pblock.nBits = GetNextWorkRequired(pindexPrev, &pblock);
-        pblock.nNonce = 0;
-        pblock.nAccumulatorCheckpoint = static_cast<uint256>(0);
-        pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock.vtx[0]);
+        SetBlockHeaders(pblock, fProofOfStake, pindexPrev, pblocktemplate);
 
         //byrd transaction printout
         LogPrintf("CreateNewBlock(): block tostring %s\n", pblock.ToString());
