@@ -461,7 +461,7 @@ BOOST_AUTO_TEST_SUITE_END();
 #include <memory>
 #include <utility>
 
-namespace VersionBitsHybrid
+namespace TestHelpers
 {
 static int32_t TestTime(int nHeight) { return 1415926536 + 600 * nHeight; }
 
@@ -523,9 +523,9 @@ public:
         int randomnessBit = -1,
         bool makeAlwaysActive = false
         ): n(randomnessBit)
-        , dummyDeployment(VersionBitsHybrid::createDummyBIP())
+        , dummyDeployment(TestHelpers::createDummyBIP())
         , cache()
-        , tracker(std::make_shared<VersionBitsHybrid::TestCachedBIP9ActivationStateTracker>(dummyDeployment,cache))
+        , tracker(std::make_shared<TestHelpers::TestCachedBIP9ActivationStateTracker>(dummyDeployment,cache))
         , fakeChain()
         , testCounter(0)
     {
@@ -539,7 +539,7 @@ public:
     {
         dummyDeployment = other.dummyDeployment;
         cache = other.cache;
-        tracker.reset(new VersionBitsHybrid::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
+        tracker.reset(new TestHelpers::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
         fakeChain = other.fakeChain;
         testCounter =other.testCounter;
         return *this;
@@ -554,7 +554,7 @@ public:
     {
         clearFakeChain();
         cache.clear();
-        tracker.reset(new VersionBitsHybrid::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
+        tracker.reset(new TestHelpers::TestCachedBIP9ActivationStateTracker(dummyDeployment,cache));
         return *this;
     }
 
@@ -565,7 +565,7 @@ public:
     }
     TestWrapper& TestState(ThresholdState state)
     {
-        static VersionBitsHybrid::RandomnessProvider rand;
+        static TestHelpers::RandomnessProvider rand;
         if( n > -1 && rand.InsecureRandBits(n % 32)) return *this;
 
         const CBlockIndex* blockToUpdate = fakeChain.size()? fakeChain.back(): NULL;
@@ -619,7 +619,7 @@ BOOST_AUTO_TEST_SUITE(CacheTestsForBIP9ActivationTracker)
 
 BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToFailedDueToTimeout)
 {
-    using namespace VersionBitsHybrid;
+    using namespace TestHelpers;
 
     TestWrapper test;
     test.TestDefined();
@@ -637,7 +637,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToFailedDueToTimeout)
 
 BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToStartedToFailedDueToTimeout)
 {
-    using namespace VersionBitsHybrid;
+    using namespace TestHelpers;
 
     TestWrapper test;
     test.TestDefined();
@@ -652,7 +652,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToStartedToFailedDueToTimeout)
 
 BOOST_AUTO_TEST_CASE(willFailToTransitionIntoALockedInStateDueToTimeoutEvenIfBipIsSignaled)
 {
-    using namespace VersionBitsHybrid;
+    using namespace TestHelpers;
     TestWrapper test;
 
     test.TestDefined();
@@ -669,7 +669,7 @@ BOOST_AUTO_TEST_CASE(willFailToTransitionIntoALockedInStateDueToTimeoutEvenIfBip
 
 BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToActiveNormally)
 {
-    using namespace VersionBitsHybrid;
+    using namespace TestHelpers;
 
     TestWrapper test;
     test.TestDefined().Mine(1, TestTime(1), 0).TestDefined();
@@ -687,7 +687,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToActiveNormally)
 
 BOOST_AUTO_TEST_CASE(willRemainInStartedStateUntilTimeoutAndRemainInFailedStateAfterwards)
 {
-    using namespace VersionBitsHybrid;
+    using namespace TestHelpers;
 
     TestWrapper test;
     test.TestDefined();   
@@ -703,7 +703,7 @@ BOOST_AUTO_TEST_CASE(willRemainInStartedStateUntilTimeoutAndRemainInFailedStateA
 
 BOOST_AUTO_TEST_CASE(willTransitionCorrectlyIndependentlyOfMethodInvocationOrder)
 {
-    using namespace VersionBitsHybrid;
+    using namespace TestHelpers;
     for (int i = 0; i < 64; i++) {
         // DEFINED -> FAILED
         TestWrapper(i).TestDefined().TestStateSinceHeight(0)
