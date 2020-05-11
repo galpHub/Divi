@@ -20,7 +20,7 @@ private:
     void getStartingBlocksForPeriodsPreceedingBlockIndex(
         std::vector<const CBlockIndex*>& startingBlocksForPeriods
         ) const;
-    bool enoughBipSignalsToLockIn(const CBlockIndex* uncachedStartingBlockIndex) const;
+    bool enoughBipSignalsToLockIn(const CBlockIndex* endingBlockIndex) const;
     void computeStateTransition(
         ThresholdState& lastKnownState,
         const CBlockIndex* previousBlockIndex) const;

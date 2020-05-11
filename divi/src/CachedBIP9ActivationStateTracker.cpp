@@ -16,14 +16,14 @@ bool CachedBIP9ActivationStateTracker::bipIsSignaledFor(const CBlockIndex* shall
     return (shallowBlockIndex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS &&
         (shallowBlockIndex->nVersion & bipMask ) != 0;
 }
-bool CachedBIP9ActivationStateTracker::enoughBipSignalsToLockIn(const CBlockIndex* uncachedStartingBlockIndex) const
+bool CachedBIP9ActivationStateTracker::enoughBipSignalsToLockIn(const CBlockIndex* endingBlockIndex) const
 {
     int blocksCounted =0;
     int count = 0u;
-    while(uncachedStartingBlockIndex && uncachedStartingBlockIndex->pprev && blocksCounted < bip_.nPeriod)
+    while(endingBlockIndex && blocksCounted < bip_.nPeriod)
     {
-        count += bipIsSignaledFor(uncachedStartingBlockIndex->pprev);
-        uncachedStartingBlockIndex = uncachedStartingBlockIndex->pprev;
+        count += bipIsSignaledFor(endingBlockIndex);
+        endingBlockIndex = endingBlockIndex->pprev;
         blocksCounted++;
     }
     return count >= bip_.threshold;
@@ -64,7 +64,7 @@ void CachedBIP9ActivationStateTracker::computeStateTransition(
             {
                 lastKnownState = ThresholdState::FAILED;
             }
-            else if(enoughBipSignalsToLockIn(blockIndex))
+            else if(enoughBipSignalsToLockIn(blockIndex->pprev))
             {
                 lastKnownState = ThresholdState::LOCKED_IN;
             }
