@@ -21,6 +21,9 @@ private:
         std::vector<const CBlockIndex*>& startingBlocksForPeriods
         ) const;
     bool enoughBipSignalsToLockIn(const CBlockIndex* uncachedStartingBlockIndex) const;
+    void computeStateTransition(
+        ThresholdState& lastKnownState,
+        const CBlockIndex* previousBlockIndex) const;
 public:
     CachedBIP9ActivationStateTracker(
         const BIP9Deployment& bip,

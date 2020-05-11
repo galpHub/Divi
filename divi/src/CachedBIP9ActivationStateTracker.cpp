@@ -39,6 +39,49 @@ const CBlockIndex* CachedBIP9ActivationStateTracker::getMostRecentStartingBlock(
     return NULL;
 }
 
+void CachedBIP9ActivationStateTracker::computeStateTransition(
+    ThresholdState& lastKnownState,
+    const CBlockIndex* blockIndex) const
+{
+    switch(lastKnownState)
+    {
+        case ThresholdState::DEFINED:
+            if(blockIndex->GetMedianTimePast() >= bip_.nTimeout)
+            {
+                lastKnownState = ThresholdState::FAILED;
+            }
+            else if(blockIndex->GetMedianTimePast() >= bip_.nStartTime)
+            {
+                lastKnownState = ThresholdState::STARTED;
+            }
+            else
+            {
+                lastKnownState = ThresholdState::DEFINED;
+            }
+            break;
+        case ThresholdState::STARTED:
+            if(blockIndex->GetMedianTimePast() >= bip_.nTimeout)
+            {
+                lastKnownState = ThresholdState::FAILED;
+            }
+            else if(enoughBipSignalsToLockIn(blockIndex))
+            {
+                lastKnownState = ThresholdState::LOCKED_IN;
+            }
+            else
+            {
+                lastKnownState = ThresholdState::STARTED;
+            }
+            break;
+        case ThresholdState::LOCKED_IN:
+            lastKnownState = ThresholdState::ACTIVE;
+            break;
+        case ThresholdState::FAILED:
+        case ThresholdState::ACTIVE:
+            break;
+    }
+}
+
 bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockIndex)
 {
     if(bip_.nStartTime==BIP9Deployment::ALWAYS_ACTIVE) return true;
@@ -62,45 +105,8 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
             thresholdCache_[*it] = ThresholdState::FAILED;
             continue;
         }
-        switch(lastKnownState)
-        {
-            case ThresholdState::DEFINED:
-                if((*it)->GetMedianTimePast() >= bip_.nTimeout)
-                {
-                    thresholdCache_[*it] = ThresholdState::FAILED;
-                }
-                else if((*it)->GetMedianTimePast() >= bip_.nStartTime)
-                {
-                    thresholdCache_[*it] = ThresholdState::STARTED;
-                }
-                else
-                {
-                    thresholdCache_[*it] = ThresholdState::DEFINED;
-                }
-                break;
-            case ThresholdState::STARTED:
-                if((*it)->GetMedianTimePast() >= bip_.nTimeout)
-                {
-                    thresholdCache_[*it] = ThresholdState::FAILED;
-                }
-                else if(enoughBipSignalsToLockIn(*it))
-                {
-                    thresholdCache_[*it] = ThresholdState::LOCKED_IN;
-                }
-                else
-                {
-                    thresholdCache_[*it] = ThresholdState::STARTED;
-                }
-                break;
-            case ThresholdState::LOCKED_IN:
-                thresholdCache_[*it] = ThresholdState::ACTIVE;
-                break;
-            case ThresholdState::FAILED:
-            case ThresholdState::ACTIVE:
-                thresholdCache_[*it] = lastKnownState;
-                break;
-        }
-        lastKnownState = thresholdCache_[*it];
+        computeStateTransition(lastKnownState, *it );
+        thresholdCache_[*it] = lastKnownState;
     }
     return thresholdCache_.count(blockIndexToCache)!=0;
 }
