@@ -53,25 +53,25 @@ BOOST_AUTO_TEST_CASE(willFindStateToBeDefinedByDefaultIfBipIsViable)
         BIP9Deployment bip;
         ThresholdConditionCache cache;
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(NULL)==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(NULL)==ThresholdState::FAILED);
     }
     {
         BIP9Deployment bip = createTimedOutBipDeployment();
         ThresholdConditionCache cache;
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(NULL)==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(NULL)==ThresholdState::FAILED);
     }
     {
         BIP9Deployment bip = createBipDeploymentWithPeriodLessThanThreshold();
         ThresholdConditionCache cache;
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(NULL)==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(NULL)==ThresholdState::FAILED);
     }
     {
         BIP9Deployment bip = createViableBipDeployment();
         ThresholdConditionCache cache;
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(NULL)==ThresholdState::DEFINED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(NULL)==ThresholdState::DEFINED);
     }
 }
 
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(willFindStateInCacheIfPresent)
 
     CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
-    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(blockIndexPtr.get())==ThresholdState::ACTIVE);
+    BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(blockIndexPtr.get())==ThresholdState::ACTIVE);
 }
 
 BOOST_AUTO_TEST_CASE(willDeferToCachedStateAtApropriateHeight)
@@ -103,14 +103,14 @@ BOOST_AUTO_TEST_CASE(willDeferToCachedStateAtApropriateHeight)
     {
         BOOST_CHECK_MESSAGE(
             activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::DEFINED,
+                .getLastCachedStatePriorToBlockIndex(fakeChain.at(height))==ThresholdState::DEFINED,
             "The height is" << height);
     }
     for(int height = bip.nPeriod; height < fakeChainSize; height++)
     {
         BOOST_CHECK_MESSAGE(
             activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::ACTIVE,
+                .getLastCachedStatePriorToBlockIndex(fakeChain.at(height))==ThresholdState::ACTIVE,
             "The height is" << height);
     }
 }
@@ -132,21 +132,21 @@ BOOST_AUTO_TEST_CASE(willDeferToCachedStateInMostRecentStartingBlockIfMedianBloc
     {
         BOOST_CHECK_MESSAGE(
             activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::DEFINED,
+                .getLastCachedStatePriorToBlockIndex(fakeChain.at(height))==ThresholdState::DEFINED,
             "The height is" << height);
     }
     for(int height = bip.nPeriod; height < 4*bip.nPeriod; height++)
     {
         BOOST_CHECK_MESSAGE(
             activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::FAILED,
+                .getLastCachedStatePriorToBlockIndex(fakeChain.at(height))==ThresholdState::FAILED,
             "The height is" << height);
     }
     for(int height = 4*bip.nPeriod; height < fakeChainSize; height++)
     {
         BOOST_CHECK_MESSAGE(
             activationStateTracker
-                .getStateAtBlockIndex(fakeChain.at(height))==ThresholdState::ACTIVE,
+                .getLastCachedStatePriorToBlockIndex(fakeChain.at(height))==ThresholdState::ACTIVE,
             "The height is" << height);
     }
 }
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(willNotChangeStateIfMedianBlockTimesArentMonotoneIncreasing
     fakeChain.extendBy(bip.nPeriod, bip.nStartTime+1, 0); // Reverts To Defined
     activationStateTracker.update(fakeChain.tip());
 
-    ThresholdState result = activationStateTracker.getStateAtBlockIndex(fakeChain.tip());
+    ThresholdState result = activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.tip());
     BOOST_CHECK_MESSAGE(
         result == ThresholdState::ACTIVE,
         "Actual: " << static_cast<int>(result) << " vs. Expected " << static_cast<int>(ThresholdState::ACTIVE)
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(willClaimToUpdateIfBlocksMeetThresholdAndPriorStateIsStarte
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::LOCKED_IN);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::LOCKED_IN);
     }
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(willClaimToUpdateIfBlocksMeetThresholdAndPriorStateIsStarte
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::LOCKED_IN);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::LOCKED_IN);
     }
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -238,7 +238,7 @@ BOOST_AUTO_TEST_CASE(willClaimToUpdateIfBlocksMeetThresholdAndPriorStateIsStarte
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::LOCKED_IN);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::LOCKED_IN);
     }
 }
 
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedStateToStartedStateOnlyIfMedianBlo
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::STARTED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))!=ThresholdState::STARTED);
     }
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedStateToStartedStateOnlyIfMedianBlo
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::STARTED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::STARTED);
     }
 }
 
@@ -284,7 +284,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedOrStartedStateToFailedStateIfMedia
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
     }    
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_CASE(willTransitionFromDefinedOrStartedStateToFailedStateIfMedia
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
     }
 }
 
@@ -316,7 +316,7 @@ BOOST_AUTO_TEST_CASE(willOverrideTransitionToOtherStateIfMedianBlockTimeIsAtLeas
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
     } 
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(willOverrideTransitionToOtherStateIfMedianBlockTimeIsAtLeas
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
     }
 }
 
@@ -350,7 +350,7 @@ static void testTransitionOccursRegardless(ThresholdState start, ThresholdState 
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==end);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==end);
     }
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -364,7 +364,7 @@ static void testTransitionOccursRegardless(ThresholdState start, ThresholdState 
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==end);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==end);
     }
     {
         BIP9Deployment bip = createViableBipDeployment();
@@ -377,7 +377,7 @@ static void testTransitionOccursRegardless(ThresholdState start, ThresholdState 
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==end);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==end);
     }
 
 }
@@ -405,7 +405,7 @@ BOOST_AUTO_TEST_CASE(willReachFailedStateOnUpdateWithAnInvalidBip)
         CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
         BOOST_CHECK(activationStateTracker.update(fakeChain.at(bip.nPeriod)));
-        BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
+        BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(bip.nPeriod))==ThresholdState::FAILED);
         BOOST_CHECK( cache.count(fakeChain.at(bip.nPeriod)) &&
             cache[fakeChain.at(bip.nPeriod)] ==ThresholdState::FAILED  );
     }
@@ -423,8 +423,8 @@ BOOST_AUTO_TEST_CASE(willUpdateOnlyCacheEntriesAfterStartTime)
     CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
     BOOST_CHECK(activationStateTracker.update(fakeChain.at(3*bip.nPeriod)));
-    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::STARTED);
-    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(2*bip.nPeriod))==ThresholdState::DEFINED);
+    BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::STARTED);
+    BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(2*bip.nPeriod))==ThresholdState::DEFINED);
     BOOST_CHECK( cache.count(fakeChain.at(bip.nPeriod))==0 );
     BOOST_CHECK( cache.count(fakeChain.at(2*bip.nPeriod)) );
     BOOST_CHECK( cache.count(fakeChain.at(3*bip.nPeriod)) );
@@ -445,9 +445,9 @@ BOOST_AUTO_TEST_CASE(willUpdateAllCacheEntriesAfterStartTime)
     CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
     BOOST_CHECK(activationStateTracker.update(fakeChain.at(4*bip.nPeriod)));
-    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(4*bip.nPeriod))==ThresholdState::LOCKED_IN);
-    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::STARTED);
-    BOOST_CHECK(activationStateTracker.getStateAtBlockIndex(fakeChain.at(2*bip.nPeriod))==ThresholdState::DEFINED);
+    BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(4*bip.nPeriod))==ThresholdState::LOCKED_IN);
+    BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(3*bip.nPeriod))==ThresholdState::STARTED);
+    BOOST_CHECK(activationStateTracker.getLastCachedStatePriorToBlockIndex(fakeChain.at(2*bip.nPeriod))==ThresholdState::DEFINED);
     BOOST_CHECK( cache.count(fakeChain.at(bip.nPeriod))==0 );
     BOOST_CHECK( cache.count(fakeChain.at(2*bip.nPeriod)) );
     BOOST_CHECK( cache.count(fakeChain.at(3*bip.nPeriod)) );
@@ -572,7 +572,7 @@ public:
 
         BOOST_CHECK_MESSAGE( tracker->update(blockToUpdate), "Update failed!");
 
-        ThresholdState result = tracker->getStateAtBlockIndex(blockToUpdate);
+        ThresholdState result = tracker->getLastCachedStatePriorToBlockIndex(blockToUpdate);
         BOOST_CHECK_MESSAGE(
             result == state, 
             "Comparing: (statecode)" << static_cast<int>(result)

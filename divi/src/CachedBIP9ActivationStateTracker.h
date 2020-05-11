@@ -28,7 +28,7 @@ public:
         );
     virtual bool bipIsSignaledFor(const CBlockIndex* shallowBlockIndex) const;
     virtual bool update(const CBlockIndex* shallowBlockIndex);
-    virtual ThresholdState getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const;
+    virtual ThresholdState getLastCachedStatePriorToBlockIndex(const CBlockIndex* shallowBlockIndex) const;
 };
 
 #endif // CACHED_BIP9_ACTIVATION_STATE_TRACKER_H

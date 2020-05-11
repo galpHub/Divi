@@ -131,7 +131,7 @@ void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBloc
     }
 }
 
-ThresholdState CachedBIP9ActivationStateTracker::getStateAtBlockIndex(const CBlockIndex* shallowBlockIndex) const
+ThresholdState CachedBIP9ActivationStateTracker::getLastCachedStatePriorToBlockIndex(const CBlockIndex* shallowBlockIndex) const
 {
     if(bip_.nStartTime==BIP9Deployment::ALWAYS_ACTIVE) return ThresholdState::ACTIVE;
     if(!bipIsViable_)
