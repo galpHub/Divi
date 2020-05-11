@@ -614,10 +614,10 @@ public:
 };
 
 
-BOOST_AUTO_TEST_SUITE(expanded_versionbits_tests)
+BOOST_AUTO_TEST_SUITE(CacheTestsForBIP9ActivationTracker)
 
 
-BOOST_AUTO_TEST_CASE(DefinedToFailed1)
+BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToFailedDueToTimeout)
 {
     using namespace VersionBitsHybrid;
 
@@ -635,7 +635,7 @@ BOOST_AUTO_TEST_CASE(DefinedToFailed1)
     test.Mine(3000, TestTime(30005), 0x100).TestFailed();
 }
 
-BOOST_AUTO_TEST_CASE(DefinedToStartedToFailed)
+BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToStartedToFailedDueToTimeout)
 {
     using namespace VersionBitsHybrid;
 
@@ -650,7 +650,7 @@ BOOST_AUTO_TEST_CASE(DefinedToStartedToFailed)
     test.Mine(4000, TestTime(20010), 0x100).TestFailed();  
 }
 
-BOOST_AUTO_TEST_CASE(DefinedToStartedToFailedAndThresholdReached)
+BOOST_AUTO_TEST_CASE(willFailToTransitionIntoALockedInStateDueToTimeoutEvenIfBipIsSignaled)
 {
     using namespace VersionBitsHybrid;
     TestWrapper test;
@@ -667,7 +667,7 @@ BOOST_AUTO_TEST_CASE(DefinedToStartedToFailedAndThresholdReached)
     test.Mine(24000, TestTime(40000), 0).TestFailed();  
 }
 
-BOOST_AUTO_TEST_CASE(DefinedToStartedToLockInToActive)
+BOOST_AUTO_TEST_CASE(willTransitionFromDefinedToActiveNormally)
 {
     using namespace VersionBitsHybrid;
 
@@ -685,7 +685,7 @@ BOOST_AUTO_TEST_CASE(DefinedToStartedToLockInToActive)
 
 }
 
-BOOST_AUTO_TEST_CASE(MultipleStartsAndMultipleFails)
+BOOST_AUTO_TEST_CASE(willRemainInStartedStateUntilTimeoutAndRemainInFailedStateAfterwards)
 {
     using namespace VersionBitsHybrid;
 
@@ -701,7 +701,7 @@ BOOST_AUTO_TEST_CASE(MultipleStartsAndMultipleFails)
     test.Mine(7000, TestTime(20000), 0x100).TestFailed();
 }
 
-BOOST_AUTO_TEST_CASE(expanded_versionbits_tests)
+BOOST_AUTO_TEST_CASE(willTransitionCorrectlyIndependentlyOfMethodInvocationOrder)
 {
     using namespace VersionBitsHybrid;
     for (int i = 0; i < 64; i++) {
