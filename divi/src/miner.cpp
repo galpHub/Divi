@@ -169,13 +169,24 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
 
 class BlockMemoryPoolTransactionCollector
 {
+private: 
+    void SetBlockHeaders(CBlock& pblock, bool fProofOfStake, CBlockIndex* pindexPrev, unique_ptr<CBlockTemplate>& pblocktemplate){
+        pblock.hashPrevBlock = pindexPrev->GetBlockHash();
+        if (!fProofOfStake)
+            UpdateTime(&pblock, pindexPrev);
+        pblock.nBits = GetNextWorkRequired(pindexPrev, &pblock);
+        pblock.nNonce = 0;
+        pblock.nAccumulatorCheckpoint = static_cast<uint256>(0);
+        pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock.vtx[0]);
+    }
+
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
         unsigned int& nBlockPrioritySize, 
         unsigned int& nBlockMaxSize,
         CBlock& pblock, 
-        unique_ptr<CBlockTemplate>&pblocktemplate,
+        unique_ptr<CBlockTemplate>& pblocktemplate,
         CAmount& nFees,
         bool& fProofOfStake,
         CMutableTransaction& txNew) 
