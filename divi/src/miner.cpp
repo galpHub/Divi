@@ -207,6 +207,22 @@ private:
         }
         return true;
     }
+
+    void RecordOrphanTransaction (
+        COrphan* porphan, 
+        list<COrphan>& vOrphan, 
+        CTransaction& tx, 
+        CTxIn& txin,
+        map<uint256, vector<COrphan*> >& mapDependers)
+    {
+        if (!porphan) {
+            // Use list for automatic deletion
+            vOrphan.push_back(COrphan(&tx));
+            porphan = &vOrphan.back();
+        }
+        mapDependers[txin.prevout.hash].push_back(porphan);
+        porphan->setDependsOn.insert(txin.prevout.hash);
+    }
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
