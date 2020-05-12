@@ -80,6 +80,7 @@ BOOST_AUTO_TEST_CASE(willFindStateInCacheIfPresent)
     BIP9Deployment bip = createViableBipDeployment();
     ThresholdConditionCache cache;
     std::shared_ptr<CBlockIndex> blockIndexPtr = std::make_shared<CBlockIndex>();
+    assert(blockIndexPtr->nHeight % bip.nPeriod == 0);
     cache[blockIndexPtr.get()] = ThresholdState::ACTIVE;
 
     CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
