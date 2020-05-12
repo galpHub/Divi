@@ -196,6 +196,17 @@ private:
             pblocktemplate->vTxFees[0] = -nFees;
         }
     }
+    
+    bool VerifyUTXOIsKnownToMemPool (const CTxMemPool& mempool, const CTxIn& txin, bool& fMissingInputs) 
+    {
+        if(!mempool.mapTx.count(txin.prevout.hash)){
+            LogPrintf("ERROR: mempool transaction missing input\n");
+            if (fDebug) assert("mempool transaction missing input" == 0);
+            fMissingInputs = true;
+            return false;
+        }
+        return true;
+    }
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
