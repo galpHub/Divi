@@ -101,6 +101,7 @@ BITCOIN_CORE_H = \
   amount.h \
   base58.h \
   BIP9Deployment.h \
+  BIP9ActivationManager.h \
   CachedBIP9ActivationStateTracker.h \
   bip38.h \
   bip39.h \
@@ -243,6 +244,7 @@ libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   alert.cpp \
   BIP9Deployment.cpp \
+  BIP9ActivationManager.cpp \
   CachedBIP9ActivationStateTracker.cpp \
   bloom.cpp \
   chain.cpp \
