@@ -182,10 +182,10 @@ private:
     }
     void ComputeCoinbaseTransactions(
             CBlock& pblock, 
-            bool& fProofOfStake,
+            const bool& fProofOfStake,
             CMutableTransaction& txNew, 
             unique_ptr<CBlockTemplate>& pblocktemplate, 
-            int& nHeight,
+            const int& nHeight,
             CAmount& nFees)
     {
         pblock.vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
