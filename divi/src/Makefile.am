@@ -188,6 +188,7 @@ BITCOIN_CORE_H = \
   spentindex.h \
   streams.h \
   sync.h \
+  ThresholdConditionCache.h \
   threadsafety.h \
   timedata.h \
   timeIntervalConstants.h \

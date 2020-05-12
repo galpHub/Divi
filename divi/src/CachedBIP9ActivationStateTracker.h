@@ -1,13 +1,12 @@
 #ifndef CACHED_BIP9_ACTIVATION_STATE_TRACKER_H
 #define CACHED_BIP9_ACTIVATION_STATE_TRACKER_H
 
-#include <map>
-#include <BIP9Deployment.h>
 #include <I_BIP9ActivationStateTracker.h>
 #include <vector>
 
 class CBlockIndex;
-typedef std::map<const CBlockIndex*, ThresholdState> ThresholdConditionCache;
+class BIP9Deployment;
+struct ThresholdConditionCache;
 
 class CachedBIP9ActivationStateTracker: public I_BIP9ActivationStateTracker
 {

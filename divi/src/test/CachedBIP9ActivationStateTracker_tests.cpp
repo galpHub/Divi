@@ -3,6 +3,7 @@
 #include <CachedBIP9ActivationStateTracker.h>
 #include <chain.h>
 #include <test/FakeBlockIndexChain.h>
+#include <ThresholdConditionCache.h>
 
 static inline BIP9Deployment createViableBipDeployment()
 {

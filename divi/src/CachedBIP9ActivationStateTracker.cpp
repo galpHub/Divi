@@ -1,5 +1,6 @@
 #include <CachedBIP9ActivationStateTracker.h>
 #include <chain.h>
+#include <ThresholdConditionCache.h>
 
 CachedBIP9ActivationStateTracker::CachedBIP9ActivationStateTracker(
     const BIP9Deployment& bip,
