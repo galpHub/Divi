@@ -211,8 +211,8 @@ private:
     void RecordOrphanTransaction (
         COrphan* porphan, 
         list<COrphan>& vOrphan, 
-        CTransaction& tx, 
-        CTxIn& txin,
+        const CTransaction& tx, 
+        const CTxIn& txin,
         map<uint256, vector<COrphan*> >& mapDependers)
     {
         if (!porphan) {
@@ -275,13 +275,8 @@ public:
                     }
 
                     // Has to wait for dependencies
-                    if (!porphan) {
-                        // Use list for automatic deletion
-                        vOrphan.push_back(COrphan(&tx));
-                        porphan = &vOrphan.back();
-                    }
-                    mapDependers[txin.prevout.hash].push_back(porphan);
-                    porphan->setDependsOn.insert(txin.prevout.hash);
+                    RecordOrphanTransaction(porphan, vOrphan, tx, txin, mapDependers);
+
                     nTotalIn += mempool.mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
                     continue;
                 }
