@@ -1,9 +1,14 @@
 #include <BIP9ActivationManager.h>
 
+#include <BIP9Deployment.h>
+#include <algorithm>
+
 BIP9ActivationManager::BIP9ActivationManager(
     ): thresholdCaches_()
     , bip9ActivationTrackers_()
+    , knownBIPs_()
 {
+    knownBIPs_.reserve(BIP9ActivationManager::MAXIMUM_SIMULTANEOUS_DEPLOYMENTS);
 }
 
 bool BIP9ActivationManager::networkEnabledBIP(std::string bipName) const
@@ -13,5 +18,11 @@ bool BIP9ActivationManager::networkEnabledBIP(std::string bipName) const
 
 BIP9ActivationManager::BIPStatus BIP9ActivationManager::getBIPStatus(std::string bipName) const
 {
-    return BIP9ActivationManager::UNKNOWN_BIP;
+    auto it = std::find_if(knownBIPs_.begin(), knownBIPs_.end(), [&bipName](const std::shared_ptr<BIP9Deployment>& bip) { return bip->deploymentName == bipName;} );
+    return (it==knownBIPs_.end())?BIP9ActivationManager::UNKNOWN_BIP : BIP9ActivationManager::IN_PROGRESS;
+}
+
+void BIP9ActivationManager::addBIP(const BIP9Deployment& bip)
+{
+    knownBIPs_.push_back(std::make_shared<BIP9Deployment>(bip));
 }

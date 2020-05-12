@@ -17,6 +17,7 @@ private:
     std::vector<std::shared_ptr<ThresholdConditionCache>> thresholdCaches_;
     std::vector<std::shared_ptr<I_BIP9ActivationStateTracker>> bip9ActivationTrackers_;
 
+    std::vector<std::shared_ptr<BIP9Deployment>> knownBIPs_;
 public:
     enum BIPStatus
     {
@@ -27,6 +28,7 @@ public:
     BIP9ActivationManager();
     bool networkEnabledBIP(std::string bipName) const;
     BIPStatus getBIPStatus(std::string bipName) const;
+    void addBIP(const BIP9Deployment& bip);
 };
 
 #endif// BIP9_ACTIVATION_MANAGER_H
