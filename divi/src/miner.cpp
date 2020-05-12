@@ -207,7 +207,15 @@ private:
         }
         return true;
     }
-
+    bool CheckUTXOValidity (const CTxIn& txin, bool& fMissingInputs, const CTransaction &tx) 
+    {
+        if (mapInvalidOutPoints.count(txin.prevout)) {
+            LogPrintf("%s : found invalid input %s in tx %s", __func__, txin.prevout.ToString(), tx.GetHash().ToString());
+            fMissingInputs = true;
+            return false;
+        }
+        return true;
+    }
     void RecordOrphanTransaction (
         COrphan* porphan, 
         list<COrphan>& vOrphan, 
