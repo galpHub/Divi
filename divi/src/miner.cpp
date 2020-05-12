@@ -252,10 +252,7 @@ public:
                     // This should never happen; all transactions in the memory
                     // pool should connect to either transactions in the chain
                     // or other transactions in the memory pool.
-                    if (!mempool.mapTx.count(txin.prevout.hash)) {
-                        LogPrintf("ERROR: mempool transaction missing input\n");
-                        if (fDebug) assert("mempool transaction missing input" == 0);
-                        fMissingInputs = true;
+                    if (!VerifyUTXOIsKnownToMemPool(mempool, txin, fMissingInputs)) {
                         if (porphan)
                             vOrphan.pop_back();
                         break;
