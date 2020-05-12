@@ -170,7 +170,7 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
 class BlockMemoryPoolTransactionCollector
 {
 private: 
-    void SetBlockHeaders(CBlock& pblock, bool& fProofOfStake, CBlockIndex& pindexPrev, unique_ptr<CBlockTemplate>& pblocktemplate)
+    void SetBlockHeaders(CBlock& pblock, const bool& fProofOfStake, const CBlockIndex& pindexPrev, unique_ptr<CBlockTemplate>& pblocktemplate)
     {
         pblock.hashPrevBlock = pindexPrev.GetBlockHash();
         if (!fProofOfStake)
