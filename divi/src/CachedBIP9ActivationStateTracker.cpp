@@ -12,7 +12,7 @@ CachedBIP9ActivationStateTracker::CachedBIP9ActivationStateTracker(
 
 bool CachedBIP9ActivationStateTracker::bipIsSignaledFor(const CBlockIndex* shallowBlockIndex) const
 {
-    static int32_t bipMask = ((int32_t)1 << bip_.bit);
+    const int32_t bipMask = ((int32_t)1 << bip_.bit);
     return (shallowBlockIndex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS &&
         (shallowBlockIndex->nVersion & bipMask ) != 0;
 }
