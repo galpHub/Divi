@@ -170,7 +170,8 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
 class BlockMemoryPoolTransactionCollector
 {
 private: 
-    void SetBlockHeaders(CBlock& pblock, bool fProofOfStake, CBlockIndex* pindexPrev, unique_ptr<CBlockTemplate>& pblocktemplate){
+    void SetBlockHeaders(CBlock& pblock, bool& fProofOfStake, CBlockIndex* pindexPrev, unique_ptr<CBlockTemplate>& pblocktemplate)
+    {
         pblock.hashPrevBlock = pindexPrev->GetBlockHash();
         if (!fProofOfStake)
             UpdateTime(&pblock, pindexPrev);
@@ -178,6 +179,22 @@ private:
         pblock.nNonce = 0;
         pblock.nAccumulatorCheckpoint = static_cast<uint256>(0);
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock.vtx[0]);
+    }
+    void ComputeCoinbaseTransactions(
+            CBlock& pblock, 
+            bool& fProofOfStake,
+            CMutableTransaction& txNew, 
+            unique_ptr<CBlockTemplate>& pblocktemplate, 
+            int& nHeight,
+            CAmount& nFees)
+    {
+        pblock.vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
+        if (!fProofOfStake) {
+            txNew.vout[0].nValue = GetBlockSubsidity(nHeight).nStakeReward;
+            txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
+            pblock.vtx[0] = txNew;
+            pblocktemplate->vTxFees[0] = -nFees;
+        }
     }
 public:
     bool CollectTransactionsIntoBlock (
