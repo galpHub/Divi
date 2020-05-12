@@ -7,6 +7,7 @@ BIP9ActivationManager::BIP9ActivationManager(
     ): thresholdCaches_()
     , bip9ActivationTrackers_()
     , knownBIPs_()
+    , bitfieldOfBipsInUse_(0u)
 {
     knownBIPs_.reserve(BIP9ActivationManager::MAXIMUM_SIMULTANEOUS_DEPLOYMENTS);
 }
@@ -24,5 +25,10 @@ BIP9ActivationManager::BIPStatus BIP9ActivationManager::getBIPStatus(std::string
 
 void BIP9ActivationManager::addBIP(const BIP9Deployment& bip)
 {
-    knownBIPs_.push_back(std::make_shared<BIP9Deployment>(bip));
+    uint32_t bipMask = ((uint32_t)1 << bip.bit);
+    if( (bipMask & bitfieldOfBipsInUse_) == 0)
+    {
+        knownBIPs_.push_back(std::make_shared<BIP9Deployment>(bip));
+        bitfieldOfBipsInUse_ |= bipMask;
+    }
 }

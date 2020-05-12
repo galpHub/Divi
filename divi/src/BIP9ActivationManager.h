@@ -18,6 +18,7 @@ private:
     std::vector<std::shared_ptr<I_BIP9ActivationStateTracker>> bip9ActivationTrackers_;
 
     std::vector<std::shared_ptr<BIP9Deployment>> knownBIPs_;
+    uint32_t bitfieldOfBipsInUse_;
 public:
     enum BIPStatus
     {

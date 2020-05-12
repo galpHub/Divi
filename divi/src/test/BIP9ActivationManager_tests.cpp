@@ -26,4 +26,17 @@ BOOST_AUTO_TEST_CASE(willRecognizeAnAddedBIP)
     BOOST_CHECK(manager.getBIPStatus(bip.deploymentName) == BIP9ActivationManager::IN_PROGRESS);
 }
 
+BOOST_AUTO_TEST_CASE(willNotAllowAddingBIPsWithOverlappingBits)
+{
+    BIP9Deployment first("MySegwitVariant", 1, (int64_t)1500000,(int64_t)1600000,1000,900);
+    BIP9Deployment second("MyOtherSegwitVariant", 1, (int64_t)1500000,(int64_t)1600000,1000,900);
+    
+    BIP9ActivationManager manager;
+    manager.addBIP(first);
+    BOOST_CHECK(manager.getBIPStatus(first.deploymentName) == BIP9ActivationManager::IN_PROGRESS);
+    
+    manager.addBIP(second);
+    BOOST_CHECK(manager.getBIPStatus(second.deploymentName) == BIP9ActivationManager::UNKNOWN_BIP);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
