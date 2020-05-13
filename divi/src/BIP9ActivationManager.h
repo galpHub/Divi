@@ -9,7 +9,7 @@ class I_BIP9ActivationStateTracker;
 struct ThresholdConditionCache;
 struct BIP9Deployment;
 class CBlockIndex;
-
+class I_BIP9ActivationTrackerFactory;
 
 class BIP9ActivationManager
 {
@@ -23,6 +23,7 @@ private:
 
     std::unordered_map<std::string, unsigned> bipIndexByName_;
     const CBlockIndex* chainTip_;
+    I_BIP9ActivationTrackerFactory& trackerFactory_;
 public:
     enum BIPStatus
     {
@@ -30,7 +31,7 @@ public:
         IN_PROGRESS
     };
 
-    BIP9ActivationManager();
+    BIP9ActivationManager(I_BIP9ActivationTrackerFactory& factory);
     bool networkEnabledBIP(std::string bipName) const;
     BIPStatus getBIPStatus(std::string bipName) const;
     void addBIP(const BIP9Deployment& bip);

@@ -4,14 +4,17 @@
 #include <algorithm>
 #include <CachedBIP9ActivationStateTracker.h>
 #include <ThresholdConditionCache.h>
+#include <I_BIP9ActivationTrackerFactory.h>
 
 BIP9ActivationManager::BIP9ActivationManager(
+    I_BIP9ActivationTrackerFactory& factory
     ): thresholdCaches_()
     , bip9ActivationTrackers_()
     , knownBIPs_()
     , bitfieldOfBipsInUse_(0u)
     , bipIndexByName_()
     , chainTip_(NULL)
+    , trackerFactory_(factory)
 {
     knownBIPs_.reserve(BIP9ActivationManager::MAXIMUM_SIMULTANEOUS_DEPLOYMENTS);
 }
