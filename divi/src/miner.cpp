@@ -231,6 +231,29 @@ private:
         mapDependers[txin.prevout.hash].push_back(porphan);
         porphan->setDependsOn.insert(txin.prevout.hash);
     }
+
+    void ComputeTransactionPriority (
+        double& dPriority, 
+        const CTransaction& tx, 
+        CAmount nTotalIn, 
+        COrphan* porphan, 
+        vector<TxPriority>& vecPriority,
+        const CTransaction& mempoolTx)
+    {
+        unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
+        dPriority = tx.ComputePriority(dPriority, nTxSize);
+
+        uint256 hash = tx.GetHash();
+        mempool.ApplyDeltas(hash, dPriority, nTotalIn);
+
+        CFeeRate feeRate(nTotalIn - tx.GetValueOut(), nTxSize);
+
+        if (porphan) {
+            porphan->dPriority = dPriority;
+            porphan->feeRate = feeRate;
+        } else
+            vecPriority.push_back(TxPriority(dPriority, feeRate, &mempoolTx));
+    }
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
