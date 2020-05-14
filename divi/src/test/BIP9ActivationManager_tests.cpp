@@ -59,7 +59,7 @@ BOOST_FIXTURE_TEST_SUITE(BIP9ActivationManager_tests,TestContainer)
 
 BOOST_AUTO_TEST_CASE(willHaveNoBIPsEnabledByDefaultOnConstruction)
 {
-    BOOST_CHECK(!manager_->networkEnabledBIP("SEGWIT"));
+    BOOST_CHECK(!manager_->networkEnabledBIP("SEGWIT",NULL));
 }
 
 BOOST_AUTO_TEST_CASE(willKnowOfNoBIPsByDefault)
@@ -133,11 +133,11 @@ BOOST_AUTO_TEST_CASE(willStateBIPIsEnabledIfTrackerIsInActiveState)
         manager_->update(chainTip);
         if(state==ThresholdState::ACTIVE)
         {
-            BOOST_CHECK(manager_->networkEnabledBIP(firstBIP.deploymentName));  
+            BOOST_CHECK(manager_->networkEnabledBIP(firstBIP.deploymentName,chainTip));  
         }
         else
         {
-            BOOST_CHECK(!manager_->networkEnabledBIP(firstBIP.deploymentName));
+            BOOST_CHECK(!manager_->networkEnabledBIP(firstBIP.deploymentName,chainTip));
         }
     };
 
