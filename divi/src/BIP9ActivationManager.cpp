@@ -24,7 +24,8 @@ bool BIP9ActivationManager::networkEnabledBIP(std::string bipName, const CBlockI
     auto it = bipIndexByName_.find(bipName);
     if(it == bipIndexByName_.end()) return false;
 
-    auto result = bip9ActivationTrackers_[it->second]->getLastCachedStatePriorToBlockIndex(chainTip_);
+    bip9ActivationTrackers_[it->second]->update(chainTip);
+    auto result = bip9ActivationTrackers_[it->second]->getLastCachedStatePriorToBlockIndex(chainTip);
     return result == ThresholdState::ACTIVE;
 }
 

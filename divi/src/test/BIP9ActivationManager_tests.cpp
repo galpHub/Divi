@@ -130,7 +130,6 @@ BOOST_AUTO_TEST_CASE(willStateBIPIsEnabledIfTrackerIsInActiveState)
             );
         
         manager_->addBIP(firstBIP);
-        manager_->update(chainTip);
         if(state==ThresholdState::ACTIVE)
         {
             BOOST_CHECK(manager_->networkEnabledBIP(firstBIP.deploymentName,chainTip));  
