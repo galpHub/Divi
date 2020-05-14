@@ -24,6 +24,34 @@ struct TestContainer
         ): factory_(std::make_shared<MockBIP9ActivationTrackerFactory>())
         , manager_(std::make_shared<BIP9ActivationManager>(*factory_))
     {
+        setDefaultFactory();
+    }
+
+    void setDefaultFactory()
+    {
+        ON_CALL(*factory_, create(_,_))
+            .WillByDefault(
+                Invoke( 
+                    [](const BIP9Deployment& a, ThresholdConditionCache& b)-> I_BIP9ActivationStateTracker*
+                    {
+                        auto mock = new NiceMock<MockBIP9ActivationStateTracker>();
+                        return mock;
+                    }
+                )
+            );
+    }
+
+    void setFailingFactory()
+    {
+        ON_CALL(*factory_, create(_,_))
+            .WillByDefault(
+                Invoke( 
+                    [](const BIP9Deployment& a, ThresholdConditionCache& b)-> I_BIP9ActivationStateTracker*
+                    {
+                        return NULL;
+                    }
+                )
+            );
     }
 };
 
@@ -46,6 +74,15 @@ BOOST_AUTO_TEST_CASE(willRecognizeAnAddedBIP)
     BOOST_CHECK(manager_->getBIPStatus(bip.deploymentName) == BIP9ActivationManager::UNKNOWN_BIP);
     manager_->addBIP(bip);
     BOOST_CHECK(manager_->getBIPStatus(bip.deploymentName) == BIP9ActivationManager::IN_PROGRESS);
+}
+
+BOOST_AUTO_TEST_CASE(willNotRecognizeAddedBIPOnFactoryFailure)
+{
+    setFailingFactory();
+    BIP9Deployment bip("MyUnrecognizedBIP", 1, (int64_t)1500000,(int64_t)1600000,1000,900);
+    
+    manager_->addBIP(bip);
+    BOOST_CHECK(manager_->getBIPStatus(bip.deploymentName) == BIP9ActivationManager::UNKNOWN_BIP);
 }
 
 BOOST_AUTO_TEST_CASE(willNotAllowAddingBIPsWithOverlappingBits)

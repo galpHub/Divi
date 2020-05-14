@@ -42,16 +42,25 @@ void BIP9ActivationManager::addBIP(const BIP9Deployment& bip)
     if( (bipMask & bitfieldOfBipsInUse_) == 0)
     {
         bipIndexByName_.insert({bip.deploymentName, knownBIPs_.size()});
-
         knownBIPs_.push_back(std::make_shared<BIP9Deployment>(bip));
-        bitfieldOfBipsInUse_ |= bipMask;
         thresholdCaches_.push_back(std::make_shared<ThresholdConditionCache>());
 
-        bip9ActivationTrackers_.emplace_back(
+        I_BIP9ActivationStateTracker* tracker = 
             trackerFactory_.create(
                 *knownBIPs_.back(), 
-                *thresholdCaches_.back())
-            );
+                *thresholdCaches_.back());
+
+        if(!tracker)
+        {
+            bipIndexByName_.erase(bip.deploymentName);
+            knownBIPs_.pop_back();
+            thresholdCaches_.pop_back();
+            return;
+        }
+
+        bitfieldOfBipsInUse_ |= bipMask;
+
+        bip9ActivationTrackers_.emplace_back( tracker );
     }
 }
 
