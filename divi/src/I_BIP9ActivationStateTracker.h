@@ -8,6 +8,7 @@ enum class ThresholdState;
 class I_BIP9ActivationStateTracker
 {
 public:
+    virtual ~I_BIP9ActivationStateTracker(){};
     virtual bool bipIsSignaledFor(const CBlockIndex* shallowBlockIndex) const = 0;
     virtual bool update(const CBlockIndex* shallowBlockIndex) = 0;
     virtual ThresholdState getLastCachedStatePriorToBlockIndex(const CBlockIndex* shallowBlockIndex) const = 0;
