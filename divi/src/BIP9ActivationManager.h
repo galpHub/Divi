@@ -14,7 +14,7 @@ class I_BIP9ActivationTrackerFactory;
 class BIP9ActivationManager
 {
 private:
-    static constexpr unsigned MAXIMUM_SIMULTANEOUS_DEPLOYMENTS = 29;
+    static constexpr int MAXIMUM_SIMULTANEOUS_DEPLOYMENTS = 29;
     std::vector<std::shared_ptr<ThresholdConditionCache>> thresholdCaches_;
     std::vector<std::shared_ptr<I_BIP9ActivationStateTracker>> bip9ActivationTrackers_;
 

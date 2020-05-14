@@ -36,6 +36,8 @@ BIP9ActivationManager::BIPStatus BIP9ActivationManager::getBIPStatus(std::string
 
 void BIP9ActivationManager::addBIP(const BIP9Deployment& bip)
 {
+    if(bip.bit >= MAXIMUM_SIMULTANEOUS_DEPLOYMENTS) return;
+    
     uint32_t bipMask = ((uint32_t)1 << bip.bit);
     if( (bipMask & bitfieldOfBipsInUse_) == 0)
     {

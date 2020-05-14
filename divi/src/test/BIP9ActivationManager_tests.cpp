@@ -110,5 +110,15 @@ BOOST_AUTO_TEST_CASE(willStateBIPIsEnabledIfTrackerIsInActiveState)
     }
 }
 
+BOOST_AUTO_TEST_CASE(willNotAllowBIPsUsingTopThreeBits)
+{
+    for(int32_t bitIndex = 29; bitIndex < 32; bitIndex++ )
+    {
+        BIP9Deployment bip("HIGH_BIT_PROPOSAL", bitIndex, (int64_t)1500000,(int64_t)1600000,1000,900);
+        manager_->addBIP(bip);
+        BOOST_CHECK(manager_->getBIPStatus(bip.deploymentName) == BIP9ActivationManager::UNKNOWN_BIP);
+    }
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
