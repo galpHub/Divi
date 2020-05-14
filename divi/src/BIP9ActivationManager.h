@@ -32,7 +32,7 @@ public:
     };
 
     BIP9ActivationManager(I_BIP9ActivationTrackerFactory& factory);
-    bool networkEnabledBIP(std::string bipName) const;
+    bool networkEnabledBIP(std::string bipName,const CBlockIndex* chainTip = NULL) const;
     BIPStatus getBIPStatus(std::string bipName) const;
     void addBIP(const BIP9Deployment& bip);
     void update(const CBlockIndex* nextBlockIndex);

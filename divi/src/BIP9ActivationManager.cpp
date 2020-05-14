@@ -19,7 +19,7 @@ BIP9ActivationManager::BIP9ActivationManager(
     knownBIPs_.reserve(BIP9ActivationManager::MAXIMUM_SIMULTANEOUS_DEPLOYMENTS);
 }
 
-bool BIP9ActivationManager::networkEnabledBIP(std::string bipName) const
+bool BIP9ActivationManager::networkEnabledBIP(std::string bipName, const CBlockIndex* chainTip) const
 {
     auto it = bipIndexByName_.find(bipName);
     if(it == bipIndexByName_.end()) return false;
