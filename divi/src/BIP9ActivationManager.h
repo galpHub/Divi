@@ -22,7 +22,6 @@ private:
     uint32_t bitfieldOfBipsInUse_;
 
     std::unordered_map<std::string, unsigned> bipIndexByName_;
-    const CBlockIndex* chainTip_;
     I_BIP9ActivationTrackerFactory& trackerFactory_;
 public:
     enum BIPStatus
@@ -35,7 +34,6 @@ public:
     bool networkEnabledBIP(std::string bipName,const CBlockIndex* chainTip = NULL) const;
     BIPStatus getBIPStatus(std::string bipName) const;
     void addBIP(const BIP9Deployment& bip);
-    void update(const CBlockIndex* nextBlockIndex);
 };
 
 #endif// BIP9_ACTIVATION_MANAGER_H

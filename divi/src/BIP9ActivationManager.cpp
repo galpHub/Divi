@@ -13,7 +13,6 @@ BIP9ActivationManager::BIP9ActivationManager(
     , knownBIPs_()
     , bitfieldOfBipsInUse_(0u)
     , bipIndexByName_()
-    , chainTip_(NULL)
     , trackerFactory_(factory)
 {
     knownBIPs_.reserve(BIP9ActivationManager::MAXIMUM_SIMULTANEOUS_DEPLOYMENTS);
@@ -24,8 +23,9 @@ bool BIP9ActivationManager::networkEnabledBIP(std::string bipName, const CBlockI
     auto it = bipIndexByName_.find(bipName);
     if(it == bipIndexByName_.end()) return false;
 
-    bip9ActivationTrackers_[it->second]->update(chainTip);
-    auto result = bip9ActivationTrackers_[it->second]->getLastCachedStatePriorToBlockIndex(chainTip);
+    auto& tracker = bip9ActivationTrackers_[it->second];
+    tracker->update(chainTip);
+    auto result = tracker->getLastCachedStatePriorToBlockIndex(chainTip);
     return result == ThresholdState::ACTIVE;
 }
 
@@ -62,14 +62,5 @@ void BIP9ActivationManager::addBIP(const BIP9Deployment& bip)
         bitfieldOfBipsInUse_ |= bipMask;
 
         bip9ActivationTrackers_.emplace_back( tracker );
-    }
-}
-
-void BIP9ActivationManager::update(const CBlockIndex* nextBlockIndex)
-{
-    chainTip_ = nextBlockIndex;
-    for(auto& trackerPtr: bip9ActivationTrackers_)
-    {
-        trackerPtr->update(nextBlockIndex);
     }
 }
