@@ -60,31 +60,55 @@ BOOST_AUTO_TEST_CASE(willNotAllowAddingBIPsWithOverlappingBits)
     BOOST_CHECK(manager_->getBIPStatus(second.deploymentName) == BIP9ActivationManager::UNKNOWN_BIP);
 }
 
-BOOST_AUTO_TEST_CASE(willEnableBIPIfChainMeetsSignalingThreshold)
+BOOST_AUTO_TEST_CASE(willStateBIPIsEnabledIfTrackerIsInActiveState)
 {
     BIP9Deployment firstBIP("MySegwitVariant", 1, (int64_t)1500000,(int64_t)1600000,1000,900);
     const CBlockIndex* chainTip = new CBlockIndex();
 
-    ON_CALL(*factory_, create(_,_))
-        .WillByDefault(
-            Invoke( 
-                [chainTip](const BIP9Deployment& a, ThresholdConditionCache& b)-> I_BIP9ActivationStateTracker*
-                {
-                    auto mock = new MockBIP9ActivationStateTracker();
-                    ON_CALL(*mock,getLastCachedStatePriorToBlockIndex(chainTip))
-                        .WillByDefault(
-                            Return(ThresholdState::ACTIVE)
-                        );
-                    return mock;
-                }
-            )
-        );
-    
-    manager_->addBIP(firstBIP);
-    
-    manager_->update(chainTip);
-    BOOST_CHECK(manager_->networkEnabledBIP(firstBIP.deploymentName));
-   
+    std::vector<ThresholdState> allStates = {
+        ThresholdState::DEFINED,
+        ThresholdState::STARTED,
+        ThresholdState::LOCKED_IN,
+        ThresholdState::FAILED,
+        ThresholdState::ACTIVE,
+    };
+
+    auto testEnvironment = [&firstBIP, chainTip](const ThresholdState& state) -> void {
+        std::shared_ptr<MockBIP9ActivationTrackerFactory> factory_ = std::make_shared<MockBIP9ActivationTrackerFactory>();
+        std::shared_ptr<BIP9ActivationManager> manager_ = std::make_shared<BIP9ActivationManager>(*factory_);
+
+        ON_CALL(*factory_, create(_,_))
+            .WillByDefault(
+                Invoke( 
+                    [chainTip, state](const BIP9Deployment& a, ThresholdConditionCache& b)-> I_BIP9ActivationStateTracker*
+                    {
+                        auto mock = new MockBIP9ActivationStateTracker();
+                        ON_CALL(*mock,getLastCachedStatePriorToBlockIndex(chainTip))
+                            .WillByDefault(
+                                Return(state)
+                            );
+                        return mock;
+                    }
+                )
+            );
+        
+        manager_->addBIP(firstBIP);
+        manager_->update(chainTip);
+        if(state==ThresholdState::ACTIVE)
+        {
+            BOOST_CHECK(manager_->networkEnabledBIP(firstBIP.deploymentName));  
+        }
+        else
+        {
+            BOOST_CHECK(!manager_->networkEnabledBIP(firstBIP.deploymentName));
+        }
+    };
+
+    for(const ThresholdState& state: allStates)
+    {
+        testEnvironment(state);
+    }
 }
+
 
 BOOST_AUTO_TEST_SUITE_END()
