@@ -238,7 +238,7 @@ private:
         CAmount nTotalIn, 
         COrphan* porphan, 
         vector<TxPriority>& vecPriority,
-        const CTransaction& mempoolTx)
+        const CTransaction* mempoolTx)
     {
         unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
         dPriority = tx.ComputePriority(dPriority, nTxSize);
@@ -252,7 +252,7 @@ private:
             porphan->dPriority = dPriority;
             porphan->feeRate = feeRate;
         } else
-            vecPriority.push_back(TxPriority(dPriority, feeRate, &mempoolTx));
+            vecPriority.push_back(TxPriority(dPriority, feeRate, mempoolTx));
     }
 public:
     bool CollectTransactionsIntoBlock (
@@ -328,21 +328,7 @@ public:
                 dPriority += (double)nValueIn * nConf;
             }
             if (fMissingInputs) continue;
-
-            // Priority is sum(valuein * age) / modified_txsize
-            unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
-            dPriority = tx.ComputePriority(dPriority, nTxSize);
-
-            uint256 hash = tx.GetHash();
-            mempool.ApplyDeltas(hash, dPriority, nTotalIn);
-
-            CFeeRate feeRate(nTotalIn - tx.GetValueOut(), nTxSize);
-
-            if (porphan) {
-                porphan->dPriority = dPriority;
-                porphan->feeRate = feeRate;
-            } else
-                vecPriority.push_back(TxPriority(dPriority, feeRate, &mi->second.GetTx()));
+            ComputeTransactionPriority(dPriority, tx, nTotalIn, porphan, vecPriority, &mi->second.GetTx());
         }
         
         // Collect transactions into block
