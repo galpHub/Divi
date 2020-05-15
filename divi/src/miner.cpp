@@ -304,9 +304,7 @@ public:
         LOCK2(cs_main, mempool.cs);
 
         CBlockIndex* pindexPrev = chainActive.Tip();
-
         const int nHeight = pindexPrev->nHeight + 1;
-
         CCoinsViewCache view(pcoinsTip);
 
         // Priority order to process transactions
@@ -362,7 +360,9 @@ public:
 
                 dPriority += (double)nValueIn * nConf;
             }
-            if (fMissingInputs) continue;
+            if (fMissingInputs) { 
+                continue;
+            }
             ComputeTransactionPriority(dPriority, tx, nTotalIn, porphan, vecPriority, &mi->second.GetTx());
         }
         
@@ -388,22 +388,31 @@ public:
 
             // Size limits
             unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
-            if (nBlockSize + nTxSize >= nBlockMaxSize)
+            if (nBlockSize + nTxSize >= nBlockMaxSize) {
                 continue;
+            }
 
             // Legacy limits on sigOps:
             unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
             unsigned int nTxSigOps = GetLegacySigOpCount(tx);
-            if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)
+            if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps) {
                 continue;
+            }
 
             // Skip free transactions if we're past the minimum block size:
             const uint256& hash = tx.GetHash();
             double dPriorityDelta = 0;
             CAmount nFeeDelta = 0;
             mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-            if (fSortedByFee && (dPriorityDelta <= 0) && (nFeeDelta <= 0) && (feeRate < ::minRelayTxFee) && (nBlockSize + nTxSize >= nBlockMinSize))
+
+            if (fSortedByFee && 
+                (dPriorityDelta <= 0) && 
+                (nFeeDelta <= 0) && 
+                (feeRate < ::minRelayTxFee) && 
+                (nBlockSize + nTxSize >= nBlockMinSize)) 
+            {
                 continue;
+            }
 
             // Prioritise by fee once past the priority size or we run out of high-priority
             // transactions:
@@ -414,22 +423,25 @@ public:
                 std::make_heap(vecPriority.begin(), vecPriority.end(), comparer);
             }
 
-            if (!view.HaveInputs(tx))
+            if (!view.HaveInputs(tx)) {
                 continue;
+            }
 
 
             CAmount nTxFees = view.GetValueIn(tx) - tx.GetValueOut();
 
             nTxSigOps += GetP2SHSigOpCount(tx, view);
-            if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)
+            if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps) {
                 continue;
+            }
 
             // Note that flags: we don't want to set mempool/IsStandard()
             // policy here, but we still have to ensure that the block we
             // create only contains transactions that are valid in new blocks.
             CValidationState state;
-            if (!CheckInputs(tx, state, view, true, MANDATORY_SCRIPT_VERIFY_FLAGS, true))
+            if (!CheckInputs(tx, state, view, true, MANDATORY_SCRIPT_VERIFY_FLAGS, true)) {
                 continue;
+            }
 
             CTxUndo txundo;
             UpdateCoins(tx, state, view, txundo, nHeight);
@@ -443,9 +455,10 @@ public:
             nBlockSigOps += nTxSigOps;
             nFees += nTxFees;
 
-            for (const CBigNum bnSerial : vTxSerials)
+            for (const CBigNum bnSerial : vTxSerials) {
                 vBlockSerials.emplace_back(bnSerial);
-
+            }
+            
             if (fPrintPriority) {
                 LogPrintf("priority %.1f fee %s txid %s\n",
                         dPriority, feeRate.ToString(), tx.GetHash().ToString());
