@@ -436,17 +436,7 @@ public:
             }
 
             // Add transactions that depend on this one to the priority queue
-            if (mapDependers.count(hash)) {
-                BOOST_FOREACH (COrphan* porphan, mapDependers[hash]) {
-                    if (!porphan->setDependsOn.empty()) {
-                        porphan->setDependsOn.erase(hash);
-                        if (porphan->setDependsOn.empty()) {
-                            vecPriority.push_back(TxPriority(porphan->dPriority, porphan->feeRate, porphan->ptx));
-                            std::push_heap(vecPriority.begin(), vecPriority.end(), comparer);
-                        }
-                    }
-                }
-            }
+            AddDependingTransactionsToPriorityQueue(mapDependers, hash, vecPriority, comparer);
         }
 
         nLastBlockTx = nBlockTx;
