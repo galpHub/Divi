@@ -254,6 +254,25 @@ private:
         } else
             vecPriority.push_back(TxPriority(dPriority, feeRate, mempoolTx));
     }
+    void AddDependingTransactionsToPriorityQueue (
+        map<uint256, vector<COrphan*> >& mapDependers,
+        const uint256& hash,
+        vector<TxPriority>& vecPriority,
+        TxPriorityCompare& comparer
+    )
+    {
+        if (mapDependers.count(hash)) {
+            BOOST_FOREACH (COrphan* porphan, mapDependers[hash]) {
+                if (!porphan->setDependsOn.empty()) {
+                    porphan->setDependsOn.erase(hash);
+                    if (porphan->setDependsOn.empty()) {
+                        vecPriority.push_back(TxPriority(porphan->dPriority, porphan->feeRate, porphan->ptx));
+                        std::push_heap(vecPriority.begin(), vecPriority.end(), comparer);
+                    }
+                }
+            }
+        }
+    }
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
