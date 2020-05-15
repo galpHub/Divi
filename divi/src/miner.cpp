@@ -460,13 +460,7 @@ public:
         LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
 
         // Compute final coinbase transaction.
-        pblock.vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
-        if (!fProofOfStake) {
-            txNew.vout[0].nValue = GetBlockSubsidity(nHeight).nStakeReward;
-            txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
-            pblock.vtx[0] = txNew;
-            pblocktemplate->vTxFees[0] = -nFees;
-        }
+        ComputeCoinBaseTransaction(pblock, pblocktemplate, fProofOfStake, nHeight, txNew, nFees);
 
         // Fill in header
         SetBlockHeaders(pblock, fProofOfStake, *pindexPrev, pblocktemplate);
