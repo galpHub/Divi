@@ -290,6 +290,7 @@ private:
         }
     }
     bool IsFreeTransaction (
+        const uint256& hash,
         const bool& fSortedByFee,
         const CFeeRate& feeRate,
         const uint64_t& nBlockSize,
@@ -297,7 +298,6 @@ private:
         const unsigned int& nBlockMinSize,
         const CTransaction& tx)
     {
-        const uint256& hash = tx.GetHash();
         double dPriorityDelta = 0;
         CAmount nFeeDelta = 0;
         mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
@@ -418,22 +418,13 @@ public:
             if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps) {
                 continue;
             }
-
-            // Skip free transactions if we're past the minimum block size:
+            
             const uint256& hash = tx.GetHash();
-            double dPriorityDelta = 0;
-            CAmount nFeeDelta = 0;
-            mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-
-            if (fSortedByFee && 
-                (dPriorityDelta <= 0) && 
-                (nFeeDelta <= 0) && 
-                (feeRate < ::minRelayTxFee) && 
-                (nBlockSize + nTxSize >= nBlockMinSize)) 
+            // Skip free transactions if we're past the minimum block size:
+            if(IsFreeTransaction(hash, fSortedByFee, feeRate, nBlockSize, nTxSize, nBlockMinSize, tx))
             {
                 continue;
             }
-
             // Prioritise by fee once past the priority size or we run out of high-priority
             // transactions:
             if (!fSortedByFee &&
