@@ -289,6 +289,26 @@ private:
             pblocktemplate->vTxFees[0] = -nFees;
         }
     }
+    bool IsFreeTransaction (
+        const bool& fSortedByFee,
+        const CFeeRate& feeRate,
+        const uint64_t& nBlockSize,
+        const unsigned int& nTxSize,
+        const unsigned int& nBlockMinSize,
+        const CTransaction& tx)
+    {
+        const uint256& hash = tx.GetHash();
+        double dPriorityDelta = 0;
+        CAmount nFeeDelta = 0;
+        mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
+        
+        return (fSortedByFee && 
+            (dPriorityDelta <= 0) && 
+            (nFeeDelta <= 0) && 
+            (feeRate < ::minRelayTxFee) && 
+            (nBlockSize + nTxSize >= nBlockMinSize));
+    }
+
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
