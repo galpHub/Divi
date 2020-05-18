@@ -470,9 +470,7 @@ public:
             UpdateCoins(tx, state, view, txundo, nHeight);
 
             // Added
-            pblock.vtx.push_back(tx);
-            pblocktemplate->vTxFees.push_back(nTxFees);
-            pblocktemplate->vTxSigOps.push_back(nTxSigOps);
+            AddTransactionToBlock(pblock, tx, pblocktemplate, nTxFees, nTxSigOps);
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
