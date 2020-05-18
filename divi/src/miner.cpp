@@ -309,6 +309,18 @@ private:
             (nBlockSize + nTxSize >= nBlockMinSize));
     }
 
+    void AddTransactionToBlock (
+        CBlock& pblock,
+        const CTransaction& tx, 
+        unique_ptr<CBlockTemplate>& pblocktemplate,
+        const CAmount& nTxFees,
+        const unsigned int& nTxSigOps
+        )
+    {  
+        pblock.vtx.push_back(tx);
+        pblocktemplate->vTxFees.push_back(nTxFees);
+        pblocktemplate->vTxSigOps.push_back(nTxSigOps);
+    }
 public:
     bool CollectTransactionsIntoBlock (
         unsigned int& nBlockMinSize, 
