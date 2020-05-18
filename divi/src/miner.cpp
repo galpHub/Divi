@@ -170,15 +170,15 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
 class BlockMemoryPoolTransactionCollector
 {
 private: 
-    void SetBlockHeaders(CBlock& pblock, const bool& fProofOfStake, const CBlockIndex& pindexPrev, unique_ptr<CBlockTemplate>& pblocktemplate)
+    void SetBlockHeaders(CBlock& block, const bool& proofOfStake, const CBlockIndex& indexPrev, unique_ptr<CBlockTemplate>& blocktemplate)
     {
-        pblock.hashPrevBlock = pindexPrev.GetBlockHash();
-        if (!fProofOfStake)
-            UpdateTime(&pblock, &pindexPrev);
-        pblock.nBits = GetNextWorkRequired(&pindexPrev, &pblock);
-        pblock.nNonce = 0;
-        pblock.nAccumulatorCheckpoint = static_cast<uint256>(0);
-        pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock.vtx[0]);
+        block.hashPrevBlock = indexPrev.GetBlockHash();
+        if (!proofOfStake)
+            UpdateTime(&block, &indexPrev);
+        block.nBits = GetNextWorkRequired(&indexPrev, &block);
+        block.nNonce = 0;
+        block.nAccumulatorCheckpoint = static_cast<uint256>(0);
+        blocktemplate->vTxSigOps[0] = GetLegacySigOpCount(block.vtx[0]);
     }
     void ComputeCoinbaseTransactions(
             CBlock& pblock, 
