@@ -99,6 +99,7 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
     if(!blockIndexToCache) return true;
 
     ThresholdState lastKnownState = thresholdCache_[lastBlockWithCachedState];
+    ThresholdState priorLastKnownState = lastKnownState;
     for(auto it = startingBlocksForPeriods.rbegin(); it != startingBlocksForPeriods.rend(); ++it)
     {
         if(!bipIsViable_)
@@ -107,9 +108,13 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
             continue;
         }
         computeStateTransition(lastKnownState, *it );
-        thresholdCache_[*it] = lastKnownState;
+        if(priorLastKnownState != lastKnownState)
+        { 
+            thresholdCache_[*it] = lastKnownState;
+            priorLastKnownState = lastKnownState;
+        }
     }
-    return thresholdCache_.count(blockIndexToCache)!=0;
+    return true;
 }
 
 void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBlockIndex(
