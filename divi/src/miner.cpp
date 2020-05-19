@@ -407,58 +407,8 @@ public:
         bool fPrintPriority = GetBoolArg("-printpriority", false);
 
         // This vector will be sorted into a priority queue:
-        vector<TxPriority> vecPriority;
-        vecPriority.reserve(mempool.mapTx.size());
-        for (map<uint256, CTxMemPoolEntry>::iterator mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi) {
-            const CTransaction& tx = mi->second.GetTx();
-            if (tx.IsCoinBase() || tx.IsCoinStake() || !IsFinalTx(tx, nHeight)){
-                continue;
-            }
+        vector<TxPriority> vecPriority = PrioritizeMempoolTransactions(nHeight, vOrphan, mapDependers, view);
 
-            COrphan* porphan = NULL;
-            double dPriority = 0;
-            CAmount nTotalIn = 0;
-            bool fMissingInputs = false;
-            for (const CTxIn& txin : tx.vin) {
-
-                // Read prev transaction
-                if (!view.HaveCoins(txin.prevout.hash)) {
-                    // This should never happen; all transactions in the memory
-                    // pool should connect to either transactions in the chain
-                    // or other transactions in the memory pool.
-                    if (!VerifyUTXOIsKnownToMemPool(mempool, txin, fMissingInputs)) {
-                        if (porphan)
-                            vOrphan.pop_back();
-                        break;
-                    }
-
-                    // Has to wait for dependencies
-                    RecordOrphanTransaction(porphan, vOrphan, tx, txin, mapDependers);
-
-                    nTotalIn += mempool.mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
-                    continue;
-                }
-
-                //Check for invalid/fraudulent inputs. They shouldn't make it through mempool, but check anyways.
-                if(!CheckUTXOValidity(txin, fMissingInputs, tx)) {
-                    break;
-                }
-
-                const CCoins* coins = view.AccessCoins(txin.prevout.hash);
-                assert(coins);
-
-                CAmount nValueIn = coins->vout[txin.prevout.n].nValue;
-                nTotalIn += nValueIn;
-
-                int nConf = nHeight - coins->nHeight;
-
-                dPriority += (double)nValueIn * nConf;
-            }
-            if (fMissingInputs) { 
-                continue;
-            }
-            ComputeTransactionPriority(dPriority, tx, nTotalIn, porphan, vecPriority, &mi->second.GetTx());
-        }
         
         // Collect transactions into block
         uint64_t nBlockSize = 1000;
