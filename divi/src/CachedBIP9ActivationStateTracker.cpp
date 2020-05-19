@@ -115,26 +115,31 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
 void CachedBIP9ActivationStateTracker::getStartingBlocksForPeriodsPreceedingBlockIndex(
     std::vector<const CBlockIndex*>& startingBlocksForPeriods) const
 {
-    const CBlockIndex* currentShallowBlockIndex = (startingBlocksForPeriods.empty())? NULL :startingBlocksForPeriods.back();
-    if(currentShallowBlockIndex && !thresholdCache_.count(currentShallowBlockIndex))
+    const CBlockIndex* currentShallowBlockIndex = NULL;
+    while(true)
     {
-        const CBlockIndex* predecesor = currentShallowBlockIndex->GetAncestor(
-            currentShallowBlockIndex->nHeight - bip_.nPeriod);
-        
-        startingBlocksForPeriods.push_back(predecesor);
-        if(!startingBlocksForPeriods.back())
-        { 
-            thresholdCache_[startingBlocksForPeriods.back()] = ThresholdState::DEFINED;
-            return;
-        }
-        if(predecesor->GetMedianTimePast() < bip_.nStartTime)
-        { 
-            if(thresholdCache_.count(startingBlocksForPeriods.back())) return;
+        currentShallowBlockIndex = (startingBlocksForPeriods.empty())? NULL :startingBlocksForPeriods.back();
+        if(currentShallowBlockIndex && !thresholdCache_.count(currentShallowBlockIndex))
+        {
+            const CBlockIndex* predecesor = currentShallowBlockIndex->GetAncestor(
+                currentShallowBlockIndex->nHeight - bip_.nPeriod);
             
-            thresholdCache_[startingBlocksForPeriods.back()] = ThresholdState::DEFINED;
-            return;
+            startingBlocksForPeriods.push_back(predecesor);
+            if(!startingBlocksForPeriods.back())
+            { 
+                thresholdCache_[startingBlocksForPeriods.back()] = ThresholdState::DEFINED;
+                break;
+            }
+            if(predecesor->GetMedianTimePast() < bip_.nStartTime)
+            { 
+                if(thresholdCache_.count(startingBlocksForPeriods.back())) return;
+                
+                thresholdCache_[startingBlocksForPeriods.back()] = ThresholdState::DEFINED;
+                break;
+            }
+            continue;
         }
-        return getStartingBlocksForPeriodsPreceedingBlockIndex(startingBlocksForPeriods);
+        break;
     }
 }
 
