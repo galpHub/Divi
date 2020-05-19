@@ -386,20 +386,20 @@ private:
 
     void AddTransactionsToBlockIfPossible (
         vector<TxPriority>& vecPriority,
+        CBlock& block,
+        uint64_t& nBlockTx,
+        bool& fSortedByFee,
         TxPriorityCompare& comparer,
         uint64_t& nBlockSize,
         unsigned int& nBlockMaxSize,
         unsigned int& nBlockMinSize,
-        int& nBlockSigOps,
-        bool& fSortedByFee,
         unsigned int& nBlockPrioritySize,
-        CCoinsViewCache& view,
+        int& nBlockSigOps,
         const int& nHeight,
+        CCoinsViewCache& view,
         unique_ptr<CBlockTemplate>& pblocktemplate,
         CAmount& nFees,
-        uint64_t& nBlockTx,
         map<uint256, vector<COrphan*> >& mapDependers,
-        CBlock& block,
         bool& fPrintPriority 
     )
     {
