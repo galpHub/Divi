@@ -181,22 +181,42 @@ BOOST_AUTO_TEST_CASE(willNotChangeStateIfMedianBlockTimesArentMonotoneIncreasing
 
 BOOST_AUTO_TEST_CASE(willKeepAMinimalCacheOfState)
 {
-    BIP9Deployment bip = createViableBipDeployment();
-    ThresholdConditionCache cache;
-    FakeBlockIndexChain fakeChain;
-    CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+    {
+        BIP9Deployment bip = createViableBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
 
-    fakeChain.extendBy(bip.nPeriod, bip.nStartTime - 1, 0); // Stays In Defined
-    fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
-    activationStateTracker.update(fakeChain.tip());
-    fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
-    activationStateTracker.update(fakeChain.tip());
-    fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
-    activationStateTracker.update(fakeChain.tip());
-    fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
-    activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime - 1, 0); // Stays In Defined
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
+        activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
+        activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
+        activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime, 0); // Moves to started
+        activationStateTracker.update(fakeChain.tip());
 
-    BOOST_CHECK(cache.size()<=3);
+        BOOST_CHECK(cache.size()<=3);
+    }
+    {
+        BIP9Deployment bip = createTimedOutBipDeployment();
+        ThresholdConditionCache cache;
+        FakeBlockIndexChain fakeChain;
+        CachedBIP9ActivationStateTracker activationStateTracker(bip,cache);
+
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime+1, 0); // Moves to failed
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime+1, 0); // Moves to failed
+        activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime+1, 0); // Moves to failed
+        activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime+1, 0); // Moves to failed
+        activationStateTracker.update(fakeChain.tip());
+        fakeChain.extendBy(bip.nPeriod, bip.nStartTime+1, 0); // Moves to failed
+        activationStateTracker.update(fakeChain.tip());
+
+        BOOST_CHECK(cache.size()<=3);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(willDetectBlockSignalsForBip)

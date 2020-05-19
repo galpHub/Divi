@@ -104,8 +104,8 @@ bool CachedBIP9ActivationStateTracker::update(const CBlockIndex* shallowBlockInd
     {
         if(!bipIsViable_)
         {
-            thresholdCache_[*it] = ThresholdState::FAILED;
-            continue;
+            if(lastKnownState != ThresholdState::FAILED) thresholdCache_[*it] = ThresholdState::FAILED;
+            return true;
         }
         computeStateTransition(lastKnownState, *it );
         if(priorLastKnownState != lastKnownState)
