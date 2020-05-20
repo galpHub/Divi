@@ -450,12 +450,7 @@ private:
             }
             // Prioritise by fee once past the priority size or we run out of high-priority
             // transactions:
-            if (!fSortedByFee &&
-                    ((nBlockSize + nTxSize >= nBlockPrioritySize) || !AllowFree(dPriority))) {
-                fSortedByFee = true;
-                comparer = TxPriorityCompare(fSortedByFee);
-                std::make_heap(vecPriority.begin(), vecPriority.end(), comparer);
-            }
+            PrioritizeFeePastPrioritySize(vecPriority, fSortedByFee, comparer, nBlockSize, nTxSize, nBlockPrioritySize, dPriority);
 
             if (!view.HaveInputs(tx)) {
                 continue;
@@ -523,7 +518,6 @@ public:
 
         // This vector will be sorted into a priority queue:
         vector<TxPriority> vecPriority = PrioritizeMempoolTransactions(nHeight, vOrphan, mapDependers, view);
-
         
         // Collect transactions into block
         uint64_t nBlockSize = 1000;
