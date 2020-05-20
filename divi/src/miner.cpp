@@ -403,8 +403,6 @@ private:
         bool& fPrintPriority 
     )
     {
-        vector<CBigNum> vBlockSerials;
-        vector<CBigNum> vTxSerials;
         while (!vecPriority.empty()) {
             // Take highest priority transaction off the priority queue:
             double dPriority = vecPriority.front().get<0>();
@@ -471,10 +469,6 @@ private:
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
             nFees += nTxFees;
-
-            for (const CBigNum bnSerial : vTxSerials) {
-                vBlockSerials.emplace_back(bnSerial);
-            }
             
             if (fPrintPriority) {
                 LogPrintf("priority %.1f fee %s txid %s\n",
