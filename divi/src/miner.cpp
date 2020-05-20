@@ -384,6 +384,23 @@ private:
         return vecPriority;
     }
 
+    void PrioritizeFeePastPrioritySize (
+        vector<TxPriority>& vecPriority,
+        bool& fSortedByFee, 
+        TxPriorityCompare& comparer,
+        uint64_t& nBlockSize,
+        unsigned int& nTxSize,
+        unsigned int& nBlockPrioritySize,
+        double& dPriority) 
+    {
+        if (!fSortedByFee &&
+                ((nBlockSize + nTxSize >= nBlockPrioritySize) || !AllowFree(dPriority))) {
+            fSortedByFee = true;
+            comparer = TxPriorityCompare(fSortedByFee);
+            std::make_heap(vecPriority.begin(), vecPriority.end(), comparer);
+        }
+    }
+
     void AddTransactionsToBlockIfPossible (
         vector<TxPriority>& vecPriority,
         CBlock& block,
