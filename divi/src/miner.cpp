@@ -523,88 +523,25 @@ public:
         TxPriorityCompare comparer(fSortedByFee);
         std::make_heap(vecPriority.begin(), vecPriority.end(), comparer);
 
-        vector<CBigNum> vBlockSerials;
-        vector<CBigNum> vTxSerials;
-        while (!vecPriority.empty()) {
-            // Take highest priority transaction off the priority queue:
-            double dPriority = vecPriority.front().get<0>();
-            CFeeRate feeRate = vecPriority.front().get<1>();
-            const CTransaction& tx = *(vecPriority.front().get<2>());
-
-            std::pop_heap(vecPriority.begin(), vecPriority.end(), comparer);
-            vecPriority.pop_back();
-
-            // Size limits
-            unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
-            if (nBlockSize + nTxSize >= nBlockMaxSize) {
-                continue;
-            }
-
-            // Legacy limits on sigOps:
-            unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
-            unsigned int nTxSigOps = GetLegacySigOpCount(tx);
-            if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps) {
-                continue;
-            }
-            
-            const uint256& hash = tx.GetHash();
-            // Skip free transactions if we're past the minimum block size:
-            if(IsFreeTransaction(hash, fSortedByFee, feeRate, nBlockSize, nTxSize, nBlockMinSize, tx))
-            {
-                continue;
-            }
-            // Prioritise by fee once past the priority size or we run out of high-priority
-            // transactions:
-            if (!fSortedByFee &&
-                    ((nBlockSize + nTxSize >= nBlockPrioritySize) || !AllowFree(dPriority))) {
-                fSortedByFee = true;
-                comparer = TxPriorityCompare(fSortedByFee);
-                std::make_heap(vecPriority.begin(), vecPriority.end(), comparer);
-            }
-
-            if (!view.HaveInputs(tx)) {
-                continue;
-            }
-
-
-            CAmount nTxFees = view.GetValueIn(tx) - tx.GetValueOut();
-
-            nTxSigOps += GetP2SHSigOpCount(tx, view);
-            if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps) {
-                continue;
-            }
-
-            // Note that flags: we don't want to set mempool/IsStandard()
-            // policy here, but we still have to ensure that the block we
-            // create only contains transactions that are valid in new blocks.
-            CValidationState state;
-            if (!CheckInputs(tx, state, view, true, MANDATORY_SCRIPT_VERIFY_FLAGS, true)) {
-                continue;
-            }
-
-            CTxUndo txundo;
-            UpdateCoins(tx, state, view, txundo, nHeight);
-
-            // Added
-            AddTransactionToBlock(block, tx, pblocktemplate, nTxFees, nTxSigOps);
-            nBlockSize += nTxSize;
-            ++nBlockTx;
-            nBlockSigOps += nTxSigOps;
-            nFees += nTxFees;
-
-            for (const CBigNum bnSerial : vTxSerials) {
-                vBlockSerials.emplace_back(bnSerial);
-            }
-            
-            if (fPrintPriority) {
-                LogPrintf("priority %.1f fee %s txid %s\n",
-                        dPriority, feeRate.ToString(), tx.GetHash().ToString());
-            }
-
-            // Add transactions that depend on this one to the priority queue
-            AddDependingTransactionsToPriorityQueue(mapDependers, hash, vecPriority, comparer);
-        }
-
+        AddTransactionsToBlockIfPossible(
+            vecPriority, 
+            block, 
+            nBlockTx, 
+            fSortedByFee, 
+            comparer,
+            nBlockSize,
+            nBlockMaxSize,
+            nBlockMinSize,
+            nBlockPrioritySize,
+            nBlockSigOps,
+            nHeight,
+            view,
+            pblocktemplate,
+            nFees,
+            mapDependers,
+            fPrintPriority
+        );
+        
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
         LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
