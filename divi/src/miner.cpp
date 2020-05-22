@@ -180,7 +180,7 @@ private:
         block.nAccumulatorCheckpoint = static_cast<uint256>(0);
         blocktemplate->vTxSigOps[0] = GetLegacySigOpCount(block.vtx[0]);
     }
-    
+
     bool VerifyUTXOIsKnownToMemPool (const CTxMemPool& mempool, const CTxIn& txin, bool& fMissingInputs) 
     {
         if(!mempool.mapTx.count(txin.prevout.hash)){
@@ -257,7 +257,7 @@ private:
             }
         }
     }
-    void ComputeCoinBaseTransaction (
+    void SetCoinBaseTransaction (
         CBlock& block, 
         unique_ptr<CBlockTemplate>& pblocktemplate,
         const bool& fProofOfStake, 
@@ -536,7 +536,7 @@ public:
         LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
 
         // Compute final coinbase transaction.
-        ComputeCoinBaseTransaction(block, pblocktemplate, fProofOfStake, nHeight, txNew, nFees);
+        SetCoinBaseTransaction(block, pblocktemplate, fProofOfStake, nHeight, txNew, nFees);
 
         // Fill in header
         SetBlockHeaders(block, fProofOfStake, *pindexPrev, pblocktemplate);
