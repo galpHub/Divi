@@ -180,22 +180,6 @@ private:
         block.nAccumulatorCheckpoint = static_cast<uint256>(0);
         blocktemplate->vTxSigOps[0] = GetLegacySigOpCount(block.vtx[0]);
     }
-    void ComputeCoinbaseTransactions(
-            CBlock& block, 
-            const bool& fProofOfStake,
-            CMutableTransaction& txNew, 
-            unique_ptr<CBlockTemplate>& pblocktemplate, 
-            const int& nHeight,
-            CAmount& nFees)
-    {
-        block.vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
-        if (!fProofOfStake) {
-            txNew.vout[0].nValue = GetBlockSubsidity(nHeight).nStakeReward;
-            txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
-            block.vtx[0] = txNew;
-            pblocktemplate->vTxFees[0] = -nFees;
-        }
-    }
     
     bool VerifyUTXOIsKnownToMemPool (const CTxMemPool& mempool, const CTxIn& txin, bool& fMissingInputs) 
     {
