@@ -170,7 +170,7 @@ unsigned int GetBlockMinSize(unsigned int defaultBlockMinSize, unsigned int bloc
 class BlockMemoryPoolTransactionCollector
 {
 private: 
-    void SetBlockHeaders(CBlock& block, const bool& proofOfStake, const CBlockIndex& indexPrev, unique_ptr<CBlockTemplate>& blocktemplate)
+    void SetBlockHeaders(CBlock& block, const bool& proofOfStake, const CBlockIndex& indexPrev, unique_ptr<CBlockTemplate>& pblocktemplate)
     {
         block.hashPrevBlock = indexPrev.GetBlockHash();
         if (!proofOfStake)
@@ -178,7 +178,7 @@ private:
         block.nBits = GetNextWorkRequired(&indexPrev, &block);
         block.nNonce = 0;
         block.nAccumulatorCheckpoint = static_cast<uint256>(0);
-        blocktemplate->vTxSigOps[0] = GetLegacySigOpCount(block.vtx[0]);
+        pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(block.vtx[0]);
     }
 
     bool VerifyUTXOIsKnownToMemPool (const CTxMemPool& mempool, const CTxIn& txin, bool& fMissingInputs) 
