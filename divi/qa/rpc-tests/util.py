@@ -23,12 +23,10 @@ import re
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from util import *
 
-portseed = os.getpid()
-
 def p2p_port(n):
-    return 11000 + n + 10 * (portseed % 99)
+    return 11000 + n + os.getpid()%999
 def rpc_port(n):
-    return 12000 + n + 10 * (portseed % 99)
+    return 12000 + n + os.getpid()%999
 
 def check_json_precision():
     """Make sure json library being used does not lose precision converting BTC values"""
