@@ -431,7 +431,10 @@ Value getmasternodecount (const Array& params, bool fHelp)
     Object obj;
     int ipv4 = 0, ipv6 = 0, onion = 0;
 
-    int nCount = chainActive.Tip()? static_cast<int>(mnodeman.GetMasternodePaymentQueue(chainActive.Tip()->nHeight, true).size()): 0;
+    int nCount = 0;
+    const CBlockIndex* tip = chainActive.Tip();
+    if (tip != nullptr)
+        nCount = mnodeman.GetMasternodePaymentQueue(tip, 0, true).size();
 
     mnodeman.CountNetworks(ActiveProtocol(), ipv4, ipv6, onion);
 
@@ -637,12 +640,14 @@ Value getmasternodewinners (const Array& params, bool fHelp)
             HelpExampleCli("getmasternodewinners", "") + HelpExampleRpc("getmasternodewinners", ""));
 
     int nHeight;
+    CBlockIndex* pindex = nullptr;
     {
         LOCK(cs_main);
-        CBlockIndex* pindex = chainActive.Tip();
+        pindex = chainActive.Tip();
         if(!pindex) return 0;
         nHeight = pindex->nHeight;
     }
+    assert(pindex != nullptr);
 
     int nLast = 10;
     std::string strFilter = "";
@@ -660,7 +665,7 @@ Value getmasternodewinners (const Array& params, bool fHelp)
         obj.push_back(Pair("nHeight", i));
 
         uint256 seedHash;
-        if (!GetBlockHashForScoring(seedHash, i)) continue;
+        if (!GetBlockHashForScoring(seedHash, pindex, i - nHeight)) continue;
         std::string strPayment = masternodePayments.GetRequiredPaymentsString(seedHash);
         if (strFilter != "" && strPayment.find(strFilter) == std::string::npos) continue;
 
