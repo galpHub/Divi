@@ -4,3 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <Comm.h>
+
+CComm::CComm(SOCKET hSocketIn, CAddress addrIn){
+
+};

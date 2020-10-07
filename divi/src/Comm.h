@@ -6,8 +6,13 @@
 #ifndef _COMM_H
 #define _COMM_H
 
+#include <compat.h>
+#include <protocol.h>
+
  class CComm {
-     
+     public:
+     CComm(SOCKET hSocketIn, CAddress addrIn);
+
  };
 
 #endif
