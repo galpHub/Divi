@@ -34,6 +34,8 @@
 class CAddrMan;
 class CBlockIndex;
 class CNode;
+class CComm;
+
 
 namespace boost
 {
