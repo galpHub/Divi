@@ -30,12 +30,11 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
 #include <boost/signals2/signal.hpp>
+#include <Comm.h>
 
 class CAddrMan;
 class CBlockIndex;
 class CNode;
-class CComm;
-
 
 namespace boost
 {
@@ -217,6 +216,8 @@ public:
 /** Information about a peer */
 class CNode
 {
+private:
+    CComm comm;
 public:
     // socket
     uint64_t nServices;
