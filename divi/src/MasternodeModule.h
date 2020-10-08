@@ -46,6 +46,7 @@ struct ActiveMasternodeStatus
     std::string outputIndex;
     std::string netAddress;
     std::string collateralAddress;
+    std::string rewardScript;
     std::string statusCode;
     std::string statusMessage;
     ActiveMasternodeStatus(
@@ -54,6 +55,7 @@ struct ActiveMasternodeStatus
         , outputIndex()
         , netAddress()
         , collateralAddress()
+        , rewardScript()
         , statusCode()
         , statusMessage()
     {}
@@ -66,6 +68,7 @@ struct MasternodeListEntry
     uint64_t outputIndex;
     std::string status;
     std::string collateralAddress;
+    std::string rewardScript;
     int protocolVersion;
     int64_t signatureTime;
     int64_t lastSeenTime;
@@ -78,6 +81,7 @@ struct MasternodeListEntry
         , outputIndex()
         , status()
         , collateralAddress()
+        , rewardScript()
         , protocolVersion()
         , signatureTime()
         , lastSeenTime()
