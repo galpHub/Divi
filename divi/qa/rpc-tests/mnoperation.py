@@ -187,8 +187,9 @@ class MnStatusTest (BitcoinTestFramework):
     assert_equal (lst[1]["tier"], "SILVER")
     for i in range (2):
       assert_equal (lst[i]["status"], "ENABLED")
-      assert_equal (lst[i]["addr"],
-                    self.nodes[i + 1].getmasternodestatus ()["addr"])
+      n = self.nodes[i + 1]
+      for key in ["addr", "rewardscript"]:
+        assert_equal (lst[i][key], n.getmasternodestatus ()[key])
       assert_equal (lst[i]["txhash"], self.cfg[i].txid)
       assert_equal (lst[i]["outidx"], self.cfg[i].vout)
 
