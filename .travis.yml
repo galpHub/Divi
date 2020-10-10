@@ -31,6 +31,8 @@ script:
   - sudo autoreconf -fvi
   - popd
   - cd divi
+  - ./autogen.sh
+  - ./configure --without-gui NO_QT=1
   - make check && pushd qa/rpc-tests/ && ./test_runner.py && popd
 after_failure:
-  - cat `find / -name "test-suite.log"`
+  - cat `find ~/build/galpHub/Divi/ -name "test-suite.log"`
