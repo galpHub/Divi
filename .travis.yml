@@ -1,15 +1,14 @@
 os: linux
-dist: trusty
-sudo: false
+dist: bionic
 language: cpp
 
 services:
   - docker
 
 before_install:
-  - apt-get install jq -y
-  - cat /etc/docker/daemon.json | jq '. + { "ipv6":true }' | sudo tee /etc/docker/daemon.json
-  - cat /etc/docker/daemon.json
+  - sudo apt-get install jq -y
+  - sudo cat /etc/docker/daemon.json | jq '. + { "ipv6":true }' | sudo tee /etc/docker/daemon.json
+  - sudo cat /etc/docker/daemon.json
 script:
   # Compile from source
   - cd divi
