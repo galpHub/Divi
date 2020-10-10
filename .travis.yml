@@ -13,8 +13,9 @@ script:
   # Compile from source
   - cd divi
   - docker build -t divi -f DockerfileWithTests .
-  - docker exec -it divi "make check"
-  - docker exec -it divi "pushd qa/rpc-tests/ && ./test_runner.py && wait && popd"
+  - docker run --name test_container -it divi
+  - docker exec -it test_container bash "make check"
+  - docker exec -it test_container bash "pushd qa/rpc-tests/ && ./test_runner.py && wait && popd"
 after_failure:
-  - docker cp divi:/app/src/test-suite.log .
+  - docker cp test_container:/app/src/test-suite.log .
   - cat test-suite.log
