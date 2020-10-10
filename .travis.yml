@@ -13,7 +13,7 @@ script:
   # Compile from source
   - cd divi
   - docker build -t divi -f DockerfileWithTests .
-  - docker run --name test_container -t divi
+  - docker run --name test_container --detach -t divi
   - docker exec -it test_container bash "make check"
   - docker exec -it test_container bash "pushd qa/rpc-tests/ && ./test_runner.py && wait && popd"
 after_failure:
