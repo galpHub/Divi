@@ -5,10 +5,32 @@ language: cpp
 services:
   - docker
 
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install apt-utils -y
+  - sudo apt-get install bsdmainutils -y
+  - sudo apt-get install software-properties-common -y
+  - sudo add-apt-repository ppa:bitcoin/bitcoin -y
+  - sudo apt-get update
+  - sudo apt-get install make -y
+  - sudo apt-get install gcc -y
+  - sudo apt-get install g++ -y
+  - sudo apt-get install pkg-config -y
+  - sudo apt-get install autoconf -y
+  - sudo apt-get install libtool -y
+  - sudo apt-get install libboost-all-dev -y
+  - sudo apt-get install libssl1.0-dev -y
+  - sudo apt-get install libevent-dev -y
+  - sudo apt-get install libdb4.8-dev libdb4.8++-dev -y
+  - sudo apt-get install python -y
+  - sudo apt-get install libzmq3-dev -y
+  - sudo apt-get install python-pip -y
+  - sudo pip install zmq
 script:
-  # Compile from source
+  - pushd divi/src/GMock
+  - sudo autoreconf -fvi
+  - popd
   - cd divi
-  - docker build -t divi -f DockerfileWithTests .
-  - docker run divi
+  - make check && pushd qa/rpc-tests/ && ./test_runner.py && popd
 after_failure:
-  - cat ./src/test-suite.log
+  - cat `find / -name "test-suite.log"`
