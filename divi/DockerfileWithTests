@@ -32,7 +32,6 @@ WORKDIR /app
 RUN ./autogen.sh
 RUN ./configure --without-gui NO_QT=1
 RUN make NO_QT=1
-RUN make check
-RUN cd qa/rpc-tests/ && ./test_runner.py && wait
+RUN make
 
 CMD ["bash"]

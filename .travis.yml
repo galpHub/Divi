@@ -5,10 +5,16 @@ language: cpp
 services:
   - docker
 
+before_install:
+  - sudo apt-get install jq -y
+  - sudo cat /etc/docker/daemon.json | jq '. + { "ipv6":true }' | sudo tee /etc/docker/daemon.json
+  - sudo cat /etc/docker/daemon.json
 script:
   # Compile from source
   - cd divi
   - docker build -t divi -f DockerfileWithTests .
-  - docker run divi
+  - docker exec -it divi "make check"
+  - docker exec -it divi "pushd qa/rpc-tests/ && ./test_runner.py && wait && popd"
 after_failure:
-  - cat ./src/test-suite.log
+  - docker cp divi:/app/src/test-suite.log .
+  - cat test-suite.log
