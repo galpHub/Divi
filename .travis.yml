@@ -15,7 +15,7 @@ script:
   - docker build -t divi -f DockerfileWithTests .
   - docker run --name test_container --detach -t divi
   - docker exec -it test_container sh -c "make check"
-  - docker exec -it test_container sh -c "pushd qa/rpc-tests/ && ./test_runner.py && wait && popd"
+  - docker exec -it test_container sh -c "cd qa/rpc-tests/ && ./test_runner.py && cd ../../"
 after_failure:
   - docker cp test_container:/app/src/test-suite.log .
   - cat test-suite.log
