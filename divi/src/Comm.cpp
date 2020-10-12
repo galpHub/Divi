@@ -9,3 +9,7 @@ CComm::CComm(SOCKET hSocketIn, CAddress addrIn){
     socket = hSocketIn;
     address = addrIn;
 };
+
+SOCKET CComm::getSocket() {
+    return socket;    
+}

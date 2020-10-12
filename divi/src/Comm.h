@@ -15,6 +15,7 @@
      CAddress address;
      public:
      CComm(SOCKET hSocketIn, CAddress addrIn);
+     SOCKET getSocket(); 
 
  };
 
