@@ -5,11 +5,13 @@
 
 #include <Comm.h>
 
-CComm::CComm(SOCKET hSocketIn, CAddress addrIn){
+Comm::CComm(SOCKET hSocketIn, CAddress addrIn)
+{
     socket = hSocketIn;
     address = addrIn;
 };
 
-SOCKET CComm::getSocket() {
+SOCKET CComm::getSocket() 
+{
     return socket;    
 }

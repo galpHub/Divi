@@ -9,13 +9,14 @@
 #include <compat.h>
 #include <protocol.h>
 
- class CComm {
+ class CComm 
+ {
      private:
-     SOCKET socket; 
-     CAddress address;
+        SOCKET socket; 
+        CAddress address;
      public:
-     CComm(SOCKET hSocketIn, CAddress addrIn);
-     SOCKET getSocket(); 
+        CComm(SOCKET hSocketIn, CAddress addrIn);
+        SOCKET getSocket(); 
 
  };
 
