@@ -5,7 +5,7 @@
 
 #include <Comm.h>
 
-Comm::CComm(SOCKET hSocketIn, CAddress addrIn)
+CComm::CComm(SOCKET hSocketIn, CAddress addrIn)
 {
     socket = hSocketIn;
     address = addrIn;
