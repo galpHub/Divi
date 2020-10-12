@@ -10,6 +10,9 @@
 #include <protocol.h>
 
  class CComm {
+     private:
+     SOCKET socket; 
+     CAddress address;
      public:
      CComm(SOCKET hSocketIn, CAddress addrIn);
 
