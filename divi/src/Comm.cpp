@@ -15,3 +15,16 @@ SOCKET CComm::getSocket()
 {
     return socket;    
 }
+
+bool CComm::closeSocket()
+{
+    if (socket == INVALID_SOCKET)
+        return false;
+        #ifdef WIN32
+            int ret = closesocket(socket);
+        #else
+            int ret = close(socket);
+        #endif
+    socket = INVALID_SOCKET;
+    return ret != SOCKET_ERROR;
+}
