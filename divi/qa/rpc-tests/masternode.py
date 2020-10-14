@@ -12,7 +12,7 @@ class MnConfigLine (object):
 
   def __init__ (self, line):
     parts = line.split (" ")
-    assert_equal (len (parts), 5)
+    assert len (parts) in [5, 6]
 
     self.line = line
 
@@ -21,6 +21,21 @@ class MnConfigLine (object):
     self.privkey = parts[2]
     self.txid = parts[3]
     self.vout = int (parts[4])
+
+    if len (parts) >= 6:
+      self.rewardAddr = parts[5]
+    else:
+      self.rewardAddr = None
+
+  def getLine (self):
+    """Returns the config line as string, to put into masternode.conf."""
+
+    res = "%s %s %s %s %d" % (self.alias, self.ip, self.privkey,
+                              self.txid, self.vout)
+    if self.rewardAddr is not None:
+      res += " %s" % self.rewardAddr
+
+    return res
 
 
 def fund_masternode (node, alias, tier, txid, ip):
