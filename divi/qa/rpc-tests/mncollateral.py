@@ -59,6 +59,7 @@ class MnCollateralTest (BitcoinTestFramework):
     assert_equal (cfg.alias, "spent")
     assert_equal (cfg.ip, "1.2.3.4:51476")
     assert_equal (cfg.txid, txid)
+    assert_equal (cfg.rewardAddr, None)
     assert_equal (node.gettxout (cfg.txid, cfg.vout)["value"], 300)
 
     # It should still be possible to spend the coins, invalidating the
