@@ -417,6 +417,7 @@ CNode* ConnectNode(CAddress addrConnect, const char* pszDest, bool obfuScationMa
     // Connect
     SOCKET hSocket;
     bool proxyConnectionFailed = false;
+    
     if (pszDest ? ConnectSocketByName(addrConnect, hSocket, pszDest, Params().GetDefaultPort(), nConnectTimeout, &proxyConnectionFailed) :
                   ConnectSocket(addrConnect, hSocket, nConnectTimeout, &proxyConnectionFailed)) {
         if (!IsSelectableSocket(hSocket)) {
@@ -454,7 +455,7 @@ void CNode::CloseSocketDisconnect()
     fDisconnect = true;
     if (hSocket != INVALID_SOCKET) {
         LogPrint("net", "disconnecting peer=%d\n", id);
-        CloseSocket(hSocket);
+        comm.closeSocket();
     }
 
     // in case this fails, we'll empty the recv buffer when the CNode is deleted
@@ -2014,7 +2015,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
 
 CNode::~CNode()
 {
-    CloseSocket(hSocket);
+    comm.closeSocket();
 
     if (pfilter)
         delete pfilter;
@@ -2068,7 +2069,7 @@ void CNode::AbortMessage() UNLOCK_FUNCTION(cs_vSend)
 
     LogPrint("net", "(aborted)\n");
 }
-
+ 
 void CNode::EndMessage() UNLOCK_FUNCTION(cs_vSend)
 {
     // The -*messagestest options are intentionally not documented in the help message,
