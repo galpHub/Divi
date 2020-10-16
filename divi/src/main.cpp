@@ -21,6 +21,7 @@
 #include "coins.h"
 #include <defaultValues.h>
 #include "FeeRate.h"
+#include "ForkActivation.h"
 #include "init.h"
 #include "kernel.h"
 #include "libzerocoin/bignum.h"
