@@ -93,6 +93,7 @@ endif
 .PHONY: FORCE
 # divi core #
 BITCOIN_CORE_H = \
+  sockControl.h \
   activemasternode.h \
   addrman.h \
   alert.h \
@@ -277,6 +278,7 @@ libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 # server: shared between divid and divi-qt
 libbitcoin_server_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libbitcoin_server_a_SOURCES = \
+  sockControl.cpp \
   addrman.cpp \
   alert.cpp \
   BlockRewards.cpp \
