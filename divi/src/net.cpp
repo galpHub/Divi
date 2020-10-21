@@ -455,7 +455,7 @@ void CNode::CloseSocketDisconnect()
     fDisconnect = true;
     if (hSocket != INVALID_SOCKET) {
         LogPrint("net", "disconnecting peer=%d\n", id);
-        comm.closeSocket();
+        CloseSocket(hSocket);
     }
 
     // in case this fails, we'll empty the recv buffer when the CNode is deleted
@@ -1960,7 +1960,7 @@ bool CAddrDB::Read(CAddrMan& addr)
 unsigned int ReceiveFloodSize() { return 1000 * settings.GetArg("-maxreceivebuffer", 5 * 1000); }
 unsigned int SendBufferSize() { return 1000 * settings.GetArg("-maxsendbuffer", 1 * 1000); }
 
-CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fInboundIn) : comm (hSocketIn, addrIn),ssSend(SER_NETWORK, INIT_PROTO_VERSION), setAddrKnown(5000)
+CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fInboundIn) : ssSend(SER_NETWORK, INIT_PROTO_VERSION), setAddrKnown(5000)
 {
     nServices = 0;
     hSocket = hSocketIn;
@@ -2015,7 +2015,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
 
 CNode::~CNode()
 {
-    comm.closeSocket();
+    CloseSocket(hSocket);
 
     if (pfilter)
         delete pfilter;

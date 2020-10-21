@@ -216,8 +216,7 @@ public:
 /** Information about a peer */
 class CNode
 {
-private:
-    CComm comm;
+
 public:
     // socket
     uint64_t nServices;
