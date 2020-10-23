@@ -218,6 +218,8 @@ public:
 /** Information about a peer */
 class CNode
 {
+private:
+    CSocketsController socketsController;
 
 public:
     // socket
