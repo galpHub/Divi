@@ -36,7 +36,7 @@
 class CAddrMan;
 class CBlockIndex;
 class CNode;
-class socketsController;
+class CSocketsController;
 
 namespace boost
 {

@@ -6,7 +6,7 @@
 #ifndef _SOCKCONTROL_H
 #define _SOCKCONTROL_H
 
-class socketsController{
+class CSocketsController {
 
 };
 
