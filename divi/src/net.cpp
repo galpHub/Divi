@@ -746,6 +746,7 @@ static list<CNode*> vNodesDisconnected;
 
 void ThreadSocketHandler()
 {
+    CSocketsController  socketsController;
     unsigned int nPrevNodeCount = 0;
     while (true) {
         //
