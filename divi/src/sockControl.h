@@ -5,10 +5,11 @@
 
 #ifndef _SOCKCONTROL_H
 #define _SOCKCONTROL_H
-
+#include <compat.h>
 class CSocketsController {
     public:
         CSocketsController(){};
+        bool CloseSocket(SOCKET& hSocket);
 };
 
 #endif
