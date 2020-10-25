@@ -9,7 +9,7 @@
 class CSocketsController {
     public:
         CSocketsController(){};
-        bool CloseSocket(SOCKET& hSocket);
+        bool closeSocket(SOCKET& hSocket);
 };
 
 #endif
