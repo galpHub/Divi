@@ -7,7 +7,8 @@
 #define _SOCKCONTROL_H
 
 class CSocketsController {
-
+    public:
+        CSocketsController(){};
 };
 
 #endif
