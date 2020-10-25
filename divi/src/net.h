@@ -219,7 +219,7 @@ public:
 class CNode
 {
 private:
-    CSocketsController socketsController;
+    CSocketsController * socketsController;
 
 public:
     // socket
