@@ -41,6 +41,7 @@
 #include <scriptCheck.h>
 #include <blockFileInfo.h>
 #include <wallet.h>
+#include <sockControl.h>
 
 using namespace boost;
 using namespace std;
