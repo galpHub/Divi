@@ -1737,7 +1737,7 @@ public:
         WSACleanup();
 #endif
     }
-} instance_of_cnetcleanup;
+};
 
 void CExplicitNetCleanup::callCleanup()
 {
