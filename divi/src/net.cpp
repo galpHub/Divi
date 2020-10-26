@@ -112,6 +112,7 @@ CCriticalSection cs_nLastNodeId;
 
 static CSemaphore* semOutbound = NULL;
 boost::condition_variable messageHandlerCondition;
+CSocketsController socketsController;
 
 // Signals for message handling
 static CNodeSignals g_signals;
