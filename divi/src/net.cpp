@@ -424,7 +424,7 @@ CNode* ConnectNode(CAddress addrConnect, const char* pszDest, bool obfuScationMa
                   ConnectSocket(addrConnect, hSocket, nConnectTimeout, &proxyConnectionFailed)) {
         if (!IsSelectableSocket(hSocket)) {
             LogPrintf("Cannot create connection: non-selectable socket created (fd >= FD_SETSIZE ?)\n");
-            CloseSocket(hSocket);
+            socketsController.closeSocket(hSocket);
             return NULL;
         }
 
@@ -457,7 +457,7 @@ void CNode::CloseSocketDisconnect()
     fDisconnect = true;
     if (hSocket != INVALID_SOCKET) {
         LogPrint("net", "disconnecting peer=%d\n", id);
-        CloseSocket(hSocket);
+        socketsController->closeSocket(hSocket);
     }
 
     // in case this fails, we'll empty the recv buffer when the CNode is deleted
@@ -919,13 +919,13 @@ void ThreadSocketHandler()
                         LogPrintf("socket error accept failed: %s\n", NetworkErrorString(nErr));
                 } else if (!IsSelectableSocket(hSocket)) {
                     LogPrintf("connection from %s dropped: non-selectable socket\n", addr.ToString());
-                    CloseSocket(hSocket);
+                   socketsController.closeSocket(hSocket);
                 } else if (nInbound >= nMaxConnections - MAX_OUTBOUND_CONNECTIONS) {
                     LogPrint("net", "connection from %s dropped (full)\n", addr.ToString());
-                    CloseSocket(hSocket);
+                    socketsController.closeSocket(hSocket);
                 } else if (CNode::IsBanned(addr) && !whitelisted) {
                     LogPrintf("connection from %s dropped (banned)\n", addr.ToString());
-                    CloseSocket(hSocket);
+                    socketsController.closeSocket(hSocket);
                 } else {
                     CNode* pnode = new CNode(&socketsController,hSocket, addr, "", true);
                     pnode->AddRef();
@@ -1564,7 +1564,7 @@ bool BindListenPort(const CService& addrBind, string& strError, bool fWhiteliste
         else
             strError = strprintf(translate("Unable to bind to %s on this computer (bind returned error %s)"), addrBind.ToString(), NetworkErrorString(nErr));
         LogPrintf("%s\n", strError);
-        CloseSocket(hListenSocket);
+        socketsController.closeSocket(hListenSocket);
         return false;
     }
     LogPrintf("Bound to %s\n", addrBind.ToString());
@@ -1573,7 +1573,7 @@ bool BindListenPort(const CService& addrBind, string& strError, bool fWhiteliste
     if (listen(hListenSocket, SOMAXCONN) == SOCKET_ERROR) {
         strError = strprintf(translate("Error: Listening for incoming connections failed (listen returned error %s)"), NetworkErrorString(WSAGetLastError()));
         LogPrintf("%s\n", strError);
-        CloseSocket(hListenSocket);
+        socketsController.closeSocket(hListenSocket);
         return false;
     }
 
@@ -1715,11 +1715,11 @@ public:
         // Close sockets
         BOOST_FOREACH (CNode* pnode, vNodes)
             if (pnode->hSocket != INVALID_SOCKET)
-                CloseSocket(pnode->hSocket);
+                socketsController->closeSocket(pnode->hSocket);
         BOOST_FOREACH (ListenSocket& hListenSocket, vhListenSocket)
             if (hListenSocket.socket != INVALID_SOCKET)
-                if (!CloseSocket(hListenSocket.socket))
-                    LogPrintf("CloseSocket(hListenSocket) failed with error %s\n", NetworkErrorString(WSAGetLastError()));
+                if (!socketsController->closeSocket(hListenSocket.socket))
+                    LogPrintf("socketsController.closeSocket(hListenSocket) failed with error %s\n", NetworkErrorString(WSAGetLastError()));
 
         // clean up some globals (to help leak detection)
         BOOST_FOREACH (CNode* pnode, vNodes)
@@ -2019,7 +2019,7 @@ CNode::CNode(CSocketsController * pSockControl,SOCKET hSocketIn, CAddress addrIn
 
 CNode::~CNode()
 {
-    CloseSocket(hSocket);
+    socketsController->closeSocket(hSocket);
 
     if (pfilter)
         delete pfilter;
