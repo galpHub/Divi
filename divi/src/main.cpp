@@ -60,7 +60,7 @@ extern Settings& settings;
 /**
  * Global state
  */
-CSocketsController * socketsController;
+CSocketsController socketsController;
 CCriticalSection cs_main;
 
 extern const int maximumFutureBlockDrift;
