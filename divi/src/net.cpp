@@ -1705,6 +1705,8 @@ bool StopNode()
 
 class CNetCleanup
 {
+    private:
+        CSocketsController * socketsController;
 public:
     CNetCleanup() {}
 
