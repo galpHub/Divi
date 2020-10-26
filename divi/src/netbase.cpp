@@ -31,6 +31,7 @@
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 #include <boost/algorithm/string/predicate.hpp> // for startswith() and endswith()
 #include <boost/thread.hpp>
+#include <sockControl.h>
 
 #if !defined(HAVE_MSG_NOSIGNAL) && !defined(MSG_NOSIGNAL)
 #define MSG_NOSIGNAL 0
@@ -72,6 +73,7 @@ std::string GetNetworkName(enum Network net)
         return "";
     }
 }
+extern CSocketsController socketsController;
 
 void SplitHostPort(std::string in, int& portOut, std::string& hostOut)
 {
