@@ -1708,7 +1708,7 @@ class CNetCleanup
     private:
         CSocketsController * socketsController;
 public:
-    CNetCleanup() {}
+    CNetCleanup(CSocketsController * pSockControl): socketsController(pSockControl) {}
 
     ~CNetCleanup()
     {
@@ -1745,7 +1745,7 @@ void CExplicitNetCleanup::callCleanup()
 {
     // Explicit call to destructor of CNetCleanup because it's not implicitly called
     // when the wallet is restarted from within the wallet itself.
-    CNetCleanup* tmp = new CNetCleanup();
+    CNetCleanup* tmp = new CNetCleanup(&socketsController);
     delete tmp; // Stroustrup's gonna kill me for that
 }
 
