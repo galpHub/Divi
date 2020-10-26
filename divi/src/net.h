@@ -319,7 +319,7 @@ public:
 
     int nSporksSynced = 0;
 
-    CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn = "", bool fInboundIn = false);
+    CNode(CSocketsController * pSockControl,SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn = "", bool fInboundIn = false);
     ~CNode();
 
 private:
