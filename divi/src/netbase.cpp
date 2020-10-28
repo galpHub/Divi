@@ -38,6 +38,7 @@
 #endif
 
 using namespace std;
+extern CSocketsController socketsController;
 
 // Settings
 static proxyType proxyInfo[NET_MAX];
@@ -73,7 +74,7 @@ std::string GetNetworkName(enum Network net)
         return "";
     }
 }
-extern CSocketsController socketsController;
+
 
 void SplitHostPort(std::string in, int& portOut, std::string& hostOut)
 {
@@ -302,7 +303,7 @@ bool static Socks5(string strDest, int port, const ProxyCredentials *auth, SOCKE
 {
     LogPrintf("SOCKS5 connecting %s\n", strDest);
     if (strDest.size() > 255) {
-        CloseSocket(hSocket);
+        socketsController.closeSocket(hSocket);
         return error("Hostname too long");
     }
     // Accepted authentication methods
