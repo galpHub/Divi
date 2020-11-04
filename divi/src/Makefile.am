@@ -143,6 +143,7 @@ BITCOIN_CORE_H = \
   FeeRate.h \
   flat-database.h \
   FilteredBoostFileSystem.h \
+  ForkActivation.h \
   Settings.h \
   hash.h \
   hdchain.h \
@@ -305,6 +306,7 @@ libbitcoin_server_a_SOURCES = \
   FilteredBoostFileSystem.cpp \
   init.cpp \
   FeeAndPriorityCalculator.cpp \
+  ForkActivation.cpp \
   datacachemanager.cpp \
   leveldbwrapper.cpp \
   blockFileInfo.cpp \
