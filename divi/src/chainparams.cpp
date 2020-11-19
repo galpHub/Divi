@@ -249,7 +249,6 @@ public:
         fMiningRequiresPeers = false;
         fAllowMinDifficultyBlocks = false;
         fDefaultConsistencyChecks = false;
-        fRequireStandard = true;
         fDifficultyRetargeting = true;
         fMineBlocksOnDemand = false;
         fHeadersFirstSyncingActive = false;
@@ -363,7 +362,6 @@ public:
         fMiningRequiresPeers = true;
         fAllowMinDifficultyBlocks = false;
         fDefaultConsistencyChecks = false;
-        fRequireStandard = true;
         fMineBlocksOnDemand = false;
         fHeadersFirstSyncingActive = false;
 
@@ -447,7 +445,6 @@ public:
         fMiningRequiresPeers = true;
         fAllowMinDifficultyBlocks = true;
         fDefaultConsistencyChecks = false;
-        fRequireStandard = false;
         fMineBlocksOnDemand = false;
         fHeadersFirstSyncingActive = false;
 
@@ -529,7 +526,6 @@ public:
         fMiningRequiresPeers = false;
         fAllowMinDifficultyBlocks = true;
         fDefaultConsistencyChecks = true;
-        fRequireStandard = false;
         fDifficultyRetargeting = false;
         fMineBlocksOnDemand = true;
     }
