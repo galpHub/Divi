@@ -11,7 +11,7 @@ from test_framework import BitcoinTestFramework
 from authproxy import JSONRPCException
 from util import *
 
-ACTIVATION_TIME = 2_100_000_000
+from segwit_light import ACTIVATION_TIME
 
 # Offset around the activation time where no restrictions are in place.
 NO_RESTRICTIONS = 24 * 3_600
@@ -123,12 +123,13 @@ class AroundSegwitLightTest (BitcoinTestFramework):
         set_node_times (self.nodes, ACTIVATION_TIME - MEMPOOL_RESTRICTED)
         self.expect_mempool_restricted ("txid")
         set_node_times (self.nodes, ACTIVATION_TIME + MEMPOOL_RESTRICTED)
-        self.expect_mempool_restricted ("txid")
+        self.node.setgenerate (True, 1)
+        self.expect_mempool_restricted ("baretxid")
 
         # Finally, we should run into mempool-only or no restrictions
         # at all if we go further into the future, away from the fork.
         set_node_times (self.nodes, ACTIVATION_TIME + WALLET_RESTRICTED)
-        self.expect_wallet_restricted ("txid")
+        self.expect_wallet_restricted ("baretxid")
         set_node_times (self.nodes, ACTIVATION_TIME + NO_RESTRICTIONS)
         self.expect_unrestricted ()
 
