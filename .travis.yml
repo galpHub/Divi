@@ -11,6 +11,7 @@ script:
   - docker build -t divi -f DockerfileWithTests .
   - docker run --name test_container divi
   - docker container ls -a
+  - docker start test_container
   - docker exec -it test_container sh -c 'make check && exit'
   - docker exec -it test_container sh -c 'pushd qa/rpc-tests/ && ./test_runner.py && popd && exit'
 after_failure:
