@@ -616,10 +616,10 @@ bool CMasternodeBroadcastFactory::signPing(
     CMasternodePing& mnp,
     std::string& strErrorRet)
 {
-    if (!mnp.SignAndVerify(keyMasternodeNew, pubKeyMasternodeNew,false))
+    if(!CObfuScationSigner::SignAndVerify<CMasternodePing>(mnp,keyMasternodeNew,pubKeyMasternodeNew,strErrorRet))
     {
         strErrorRet = strprintf("Failed to sign ping, masternode=%s", mnp.vin.prevout.hash.ToString());
-        LogPrint("masternode","CMasternodeBroadcastFactory::Create -- %s\n", strErrorRet);
+        LogPrint("masternode","%s -- %s\n",__func__, strErrorRet);
         return false;
     }
     return true;
@@ -630,10 +630,10 @@ bool CMasternodeBroadcastFactory::signBroadcast(
     CMasternodeBroadcast& mnb,
     std::string& strErrorRet)
 {
-    if (!mnb.SignAndVerify(keyCollateralAddressNew,false))
+    if (! CObfuScationSigner::SignAndVerify<CMasternodeBroadcast>(mnb,keyCollateralAddressNew,mnb.pubKeyCollateralAddress,strErrorRet))
     {
         strErrorRet = strprintf("Failed to sign broadcast, masternode=%s", mnb.vin.prevout.hash.ToString());
-        LogPrint("masternode","CMasternodeBroadcastFactory::Create -- %s\n", strErrorRet);
+        LogPrint("masternode","%s -- %s\n", __func__, strErrorRet);
         mnb = CMasternodeBroadcast();
         return false;
     }
