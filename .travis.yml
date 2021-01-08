@@ -10,5 +10,6 @@ script:
   - cd divi
   - docker build -t divi -f DockerfileWithTests .
   - docker run divi
+  - docker exec -it divi sh -c 'pushd qa/rpc-tests/ && ./test_runner.py && popd'
 after_failure:
   - cat ./src/test-suite.log
