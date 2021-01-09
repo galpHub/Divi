@@ -40,4 +40,4 @@ RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1001 ubuntu
 RUN echo "ubuntu:ubuntu" | chpasswd && adduser ubuntu sudo
 USER ubuntu
 
-CMD ["bash"]
+CMD ["sleep","infinity"]
