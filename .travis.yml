@@ -14,7 +14,7 @@ script:
   - docker container ls -a
   - container_id=$(docker ps -aqf "name=test_container")
   - echo "${container_id}"
-  - docker exec -it ${container_id} sh -c 'make check && pushd qa/rpc-tests/ && ./test_runner.py && popd && exit'
+  - docker exec -it ${container_id} sh -c 'make check && cd qa/rpc-tests/ && ./test_runner.py && exit'
 
 after_failure:
   - cat ./src/test-suite.log
