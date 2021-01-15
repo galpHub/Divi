@@ -14,6 +14,7 @@
 #include <chain.h>
 #include "coincontrol.h"
 #include <chainparams.h>
+#include "ForkActivation.h"
 #include "masternode-payments.h"
 #include "net.h"
 #include "script/script.h"
@@ -59,6 +60,13 @@ bool bdisableSystemnotifications = false; // Those bubbles can be annoying and s
 bool fSendFreeTransactions = false;
 bool fPayAtLeastCustomFee = true;
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
+
+/** Number of seconds around the "segwit light" fork for which we force
+ *  not spending unconfirmed change (to avoid messing up with the change
+ *  itself).  This should be larger than the matching constant for the
+ *  mempool (so the wallet does not construct things the mempool won't
+ *  accept in the end).  */
+constexpr int SEGWIT_LIGHT_DISABLE_SPENDING_ZERO_CONF_SECONDS = 43200;
 
 /**
  * Fees smaller than this (in duffs) are considered zero fee (for transaction creation)
@@ -2066,6 +2074,12 @@ void CWallet::UpdateNextTransactionIndexAvailable(int64_t transactionIndex)
     orderedTransactionIndex = transactionIndex;
 }
 
+bool CWallet::AllowSpendingZeroConfirmationChange() const
+{
+    return allowSpendingZeroConfirmationOutputs
+        && !ActivationState::CloseToSegwitLight(SEGWIT_LIGHT_DISABLE_SPENDING_ZERO_CONF_SECONDS);
+}
+
 bool CWallet::SelectCoins(const CAmount& nTargetValue, set<pair<const CWalletTx*, unsigned int> >& setCoinsRet, CAmount& nValueRet, const CCoinControl* coinControl, AvailableCoinsType coin_type, bool useIX) const
 {
     // Note: this function should never be used for "always free" tx types like dstx
@@ -2087,7 +2101,7 @@ bool CWallet::SelectCoins(const CAmount& nTargetValue, set<pair<const CWalletTx*
 
     return (SelectCoinsMinConf(nTargetValue, 1, 6, vCoins, setCoinsRet, nValueRet) ||
             SelectCoinsMinConf(nTargetValue, 1, 1, vCoins, setCoinsRet, nValueRet) ||
-            (allowSpendingZeroConfirmationOutputs && SelectCoinsMinConf(nTargetValue, 0, 1, vCoins, setCoinsRet, nValueRet)));
+            (AllowSpendingZeroConfirmationChange() && SelectCoinsMinConf(nTargetValue, 0, 1, vCoins, setCoinsRet, nValueRet)));
 }
 
 bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
@@ -2920,7 +2934,7 @@ bool CWallet::IsTrusted(const CWalletTx& walletTransaction) const
         return true;
     if (nDepth < 0)
         return false;
-    if (!allowSpendingZeroConfirmationOutputs || !DebitsFunds(walletTransaction, ISMINE_ALL)) // using wtx's cached debit
+    if (!AllowSpendingZeroConfirmationChange() || !DebitsFunds(walletTransaction, ISMINE_ALL)) // using wtx's cached debit
         return false;
 
     // Trusted if all inputs are from us and are in the mempool:

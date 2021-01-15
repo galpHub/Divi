@@ -185,6 +185,11 @@ private:
     //it was public bool SelectCoins(int64_t nTargetValue, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet, const CCoinControl *coinControl = NULL, AvailableCoinsType coin_type=ALL_SPENDABLE_COINS, bool useIX = true) const;
     void DeriveNewChildKey(const CKeyMetadata& metadata, CKey& secretRet, uint32_t nAccountIndex, bool fInternal /*= false*/);
 
+    /** Returns true if the wallet should allow spending of unconfirmed change.
+     *  This is mostly determined by allowSpendingZeroConfirmationOutputs,
+     *  but is forced to off around the segwit-light fork.  */
+    bool AllowSpendingZeroConfirmationChange() const;
+
 public:
     bool MoveFundsBetweenAccounts(std::string from, std::string to, CAmount amount, std::string comment);
 
