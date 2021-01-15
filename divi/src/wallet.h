@@ -166,6 +166,11 @@ public:
 private:
     void DeriveNewChildKey(const CKeyMetadata& metadata, CKey& secretRet, uint32_t nAccountIndex, bool fInternal /*= false*/);
 
+    /** Returns true if the wallet should allow spending of unconfirmed change.
+     *  This is mostly determined by allowSpendingZeroConfirmationOutputs,
+     *  but is forced to off around the segwit-light fork.  */
+    bool AllowSpendingZeroConfirmationChange() const;
+
 public:
     bool MoveFundsBetweenAccounts(std::string from, std::string to, CAmount amount, std::string comment);
 
