@@ -87,19 +87,21 @@ bool ActiveChainManager::DisconnectBlock(
         return error("DisconnectBlock() : block and undo data inconsistent");
     }
 
+    const BlockUtxoHasher utxoHasher;
+
     bool fClean = true;
     IndexDatabaseUpdates indexDBUpdates;
     // undo transactions in reverse order
     for (int transactionIndex = block.vtx.size() - 1; transactionIndex >= 0; transactionIndex--) {
         const CTransaction& tx = block.vtx[transactionIndex];
-        const TxReversalStatus status = UpdateCoinsReversingTransaction(tx,view,blockUndo.vtxundo[transactionIndex-1],pindex->nHeight);
+        const TransactionLocationReference txLocationReference(utxoHasher, tx, pindex->nHeight, transactionIndex);
+        const TxReversalStatus status = UpdateCoinsReversingTransaction(tx, txLocationReference, view, blockUndo.vtxundo[transactionIndex-1]);
         if(!CheckTxReversalStatus(status,fClean))
         {
             return false;
         }
         if(!pfClean)
         {
-            TransactionLocationReference txLocationReference(tx.GetHash(),pindex->nHeight,transactionIndex);
             IndexDatabaseUpdateCollector::ReverseTransaction(tx,txLocationReference,view,indexDBUpdates);
         }
     }

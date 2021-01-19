@@ -203,7 +203,7 @@ std::vector<TxPriority> BlockMemoryPoolTransactionCollector::PrioritizeMempoolTr
             // Read prev transaction
             if (!view.HaveCoins(txin.prevout.hash)) {
                 CTransaction prevTx;
-                if(!mempool_.lookup(txin.prevout.hash, prevTx)) {
+                if(!mempool_.lookupOutpoint(txin.prevout.hash, prevTx)) {
                     // This should never happen; all transactions in the memory
                     // pool should connect to either transactions in the chain
                     // or other transactions in the memory pool.
@@ -338,7 +338,7 @@ std::vector<PrioritizedTransactionData> BlockMemoryPoolTransactionCollector::Pri
         nBlockSigOps += nTxSigOps;
 
         CTxUndo txundo;
-        UpdateCoinsWithTransaction(tx, view, txundo, nHeight);
+        UpdateCoinsWithTransaction(tx, view, txundo, mempool_.GetUtxoHasher(), nHeight);
 
         if (fPrintPriority) {
             LogPrintf("priority %.1f fee %s txid %s\n",
@@ -346,7 +346,7 @@ std::vector<PrioritizedTransactionData> BlockMemoryPoolTransactionCollector::Pri
         }
 
         // Add transactions that depend on this one to the priority queue
-        AddDependingTransactionsToPriorityQueue(dependentTransactions, hash, vecPriority, comparer);
+        AddDependingTransactionsToPriorityQueue(dependentTransactions, mempool_.GetUtxoHasher().GetUtxoHash(tx), vecPriority, comparer);
     }
 
     LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);

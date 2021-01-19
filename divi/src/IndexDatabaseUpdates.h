@@ -6,6 +6,9 @@
 #include <spentindex.h>
 #include <uint256.h>
 
+class CTransaction;
+class TransactionUtxoHasher;
+
 struct IndexDatabaseUpdates
 {
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
@@ -19,11 +22,13 @@ struct IndexDatabaseUpdates
 struct TransactionLocationReference
 {
     uint256 hash;
+    uint256 utxoHash;
     unsigned blockHeight;
     int transactionIndex;
 
     TransactionLocationReference(
-        uint256 hashValue,
+        const TransactionUtxoHasher& utxoHasher,
+        const CTransaction& tx,
         unsigned blockheightValue,
         int transactionIndexValue);
 };

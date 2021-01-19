@@ -1301,7 +1301,7 @@ void VerifyBestBlockIsAtPreviousBlock(const CBlockIndex* pindex, CCoinsViewCache
     assert(hashPrevBlock == view.GetBestBlock());
 }
 
-bool CheckEnforcedPoSBlocksAndBIP30(const CChainParams& chainParameters, const CBlock& block, CValidationState& state, const CBlockIndex* pindex, const CCoinsViewCache& view)
+bool CheckEnforcedPoSBlocksAndBIP30(const CChainParams& chainParameters, const TransactionUtxoHasher& utxoHasher, const CBlock& block, CValidationState& state, const CBlockIndex* pindex, const CCoinsViewCache& view)
 {
     if (pindex->nHeight <= chainParameters.LAST_POW_BLOCK() && block.IsProofOfStake())
         return state.DoS(100, error("%s : PoS period not active",__func__),
@@ -1313,7 +1313,7 @@ bool CheckEnforcedPoSBlocksAndBIP30(const CChainParams& chainParameters, const C
 
     // Enforce BIP30.
     for (const auto& tx : block.vtx) {
-        const CCoins* coins = view.AccessCoins(tx.GetHash());
+        const CCoins* coins = view.AccessCoins(utxoHasher.GetUtxoHash(tx));
         if (coins && !coins->IsPruned())
             return state.DoS(100, error("%s : tried to overwrite transaction",__func__),
                              REJECT_INVALID, "bad-txns-BIP30");
@@ -1433,6 +1433,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     LogWalletBalance(pwalletMain);
     static const CChainParams& chainParameters = Params();
 
+    const BlockUtxoHasher utxoHasher;
+
     VerifyBestBlockIsAtPreviousBlock(pindex,view);
     if (block.GetHash() == Params().HashGenesisBlock())
     {
@@ -1440,7 +1442,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             view.SetBestBlock(pindex->GetBlockHash());
         return true;
     }
-    if(!CheckEnforcedPoSBlocksAndBIP30(chainParameters,block,state,pindex,view))
+    if(!CheckEnforcedPoSBlocksAndBIP30(chainParameters,utxoHasher,block,state,pindex,view))
     {
         return false;
     }
@@ -1458,7 +1460,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     const int blocksToSkipChecksFor = checkpointsVerifier.GetTotalBlocksEstimate();
     IndexDatabaseUpdates indexDatabaseUpdates;
     CBlockRewards nExpectedMint = subsidiesContainer.blockSubsidiesProvider().GetBlockSubsidity(pindex->nHeight);
-    BlockTransactionChecker blockTxChecker(block,state,pindex,view,blocksToSkipChecksFor);
+    BlockTransactionChecker blockTxChecker(block, utxoHasher, state, pindex, view, blocksToSkipChecksFor);
 
     if(!blockTxChecker.Check(nExpectedMint,fJustCheck,indexDatabaseUpdates))
     {
@@ -2737,6 +2739,7 @@ bool static LoadBlockIndexDB(string& strError)
                     strError = "The wallet has been not been closed gracefully and has caused corruption of blocks stored to disk. Data directory is in an unusable state";
                     return false;
                 }
+                const BlockUtxoHasher utxoHasher;
 
                 std::vector<CTxUndo> vtxundo;
                 vtxundo.reserve(block.vtx.size() - 1);
@@ -2746,7 +2749,7 @@ bool static LoadBlockIndexDB(string& strError)
                     CTxUndo undoDummy;
                     if (i > 0)
                         vtxundo.push_back(CTxUndo());
-                    UpdateCoinsWithTransaction(block.vtx[i], view, i == 0 ? undoDummy : vtxundo.back(), pindex->nHeight);
+                    UpdateCoinsWithTransaction(block.vtx[i], view, i == 0 ? undoDummy : vtxundo.back(), utxoHasher, pindex->nHeight);
                     view.SetBestBlock(hashBlock);
                 }
 

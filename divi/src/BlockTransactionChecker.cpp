@@ -38,12 +38,14 @@ void TransactionLocationRecorder::RecordTxLocationData(
 
 BlockTransactionChecker::BlockTransactionChecker(
     const CBlock& block,
+    const TransactionUtxoHasher& utxoHasher,
     CValidationState& state,
     CBlockIndex* pindex,
     CCoinsViewCache& view,
     const int blocksToSkipChecksFor
     ): blockundo_(block.vtx.size() - 1)
     , block_(block)
+    , utxoHasher_(utxoHasher)
     , state_(state)
     , pindex_(pindex)
     , view_(view)
@@ -59,7 +61,7 @@ bool BlockTransactionChecker::Check(const CBlockRewards& nExpectedMint,bool fJus
     pindex_->nMint = 0;
     for (unsigned int i = 0; i < block_.vtx.size(); i++) {
         const CTransaction& tx = block_.vtx[i];
-        const TransactionLocationReference txLocationRef(tx.GetHash(),pindex_->nHeight,i);
+        const TransactionLocationReference txLocationRef(utxoHasher_, tx, pindex_->nHeight, i);
 
         if(!txInputChecker_.TotalSigOpsAreBelowMaximum(tx))
         {
@@ -79,7 +81,7 @@ bool BlockTransactionChecker::Check(const CBlockRewards& nExpectedMint,bool fJus
         }
 
         IndexDatabaseUpdateCollector::RecordTransaction(tx,txLocationRef,view_, indexDatabaseUpdates);
-        UpdateCoinsWithTransaction(tx, view_, blockundo_.vtxundo[i>0u? i-1: 0u], pindex_->nHeight);
+        UpdateCoinsWithTransaction(tx, view_, blockundo_.vtxundo[i>0u? i-1: 0u], utxoHasher_, pindex_->nHeight);
         txLocationRecorder_.RecordTxLocationData(tx,indexDatabaseUpdates.txLocationData);
     }
     return true;

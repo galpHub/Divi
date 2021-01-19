@@ -10,15 +10,22 @@
 #include <undo.h>
 #include <chainparams.h>
 #include <defaultValues.h>
+#include <IndexDatabaseUpdates.h>
 
 extern BlockMap mapBlockIndex;
 
-void UpdateCoinsWithTransaction(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo& txundo, int nHeight)
+uint256 BlockUtxoHasher::GetUtxoHash(const CTransaction& tx) const
+{
+    return tx.GetHash();
+}
+
+void UpdateCoinsWithTransaction(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo& txundo,
+                               const TransactionUtxoHasher& hasher, const int nHeight)
 {
     // mark inputs spent
     if (!tx.IsCoinBase() ) {
         txundo.vprevout.reserve(tx.vin.size());
-        BOOST_FOREACH (const CTxIn& txin, tx.vin) {
+        for (const auto& txin : tx.vin) {
             txundo.vprevout.push_back(CTxInUndo());
             bool ret = inputs.ModifyCoins(txin.prevout.hash)->Spend(txin.prevout.n, txundo.vprevout.back());
             assert(ret);
@@ -26,12 +33,12 @@ void UpdateCoinsWithTransaction(const CTransaction& tx, CCoinsViewCache& inputs,
     }
 
     // add outputs
-    inputs.ModifyCoins(tx.GetHash())->FromTx(tx, nHeight);
+    inputs.ModifyCoins(hasher.GetUtxoHash(tx))->FromTx(tx, nHeight);
 }
 
 static bool RemoveTxOutputsFromCache(
     const CTransaction& tx,
-    const int blockHeight,
+    const TransactionLocationReference& txLocationReference,
     CCoinsViewCache& view)
 {
     bool outputsAvailable = true;
@@ -40,10 +47,10 @@ static bool RemoveTxOutputsFromCache(
     // have outputs available even in the block itself, so we handle that case
     // specially with outsEmpty.
     CCoins outsEmpty;
-    CCoinsModifier outs = view.ModifyCoins(tx.GetHash());
+    CCoinsModifier outs = view.ModifyCoins(txLocationReference.utxoHash);
     outs->ClearUnspendable();
 
-    CCoins outsBlock(tx, blockHeight);
+    CCoins outsBlock(tx, txLocationReference.blockHeight);
     // The CCoins serialization does not serialize negative numbers.
     // No network rules currently depend on the version here, so an inconsistency is harmless
     // but it must be corrected before txout nversion ever influences a network rule.
@@ -88,10 +95,10 @@ static void UpdateCoinsForRestoredInputs(
     coins->vout[out.n] = undo.txout;
 }
 
-TxReversalStatus UpdateCoinsReversingTransaction(const CTransaction& tx, CCoinsViewCache& inputs, const CTxUndo& txundo, int nHeight)
+TxReversalStatus UpdateCoinsReversingTransaction(const CTransaction& tx, const TransactionLocationReference& txLocationReference, CCoinsViewCache& inputs, const CTxUndo& txundo)
 {
     bool fClean = true;
-    fClean = fClean && RemoveTxOutputsFromCache(tx,nHeight,inputs);
+    fClean = fClean && RemoveTxOutputsFromCache(tx, txLocationReference, inputs);
     if(tx.IsCoinBase()) return fClean? TxReversalStatus::OK : TxReversalStatus::CONTINUE_WITH_ERRORS;
     if (txundo.vprevout.size() != tx.vin.size())
     {

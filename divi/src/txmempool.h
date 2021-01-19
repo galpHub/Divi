@@ -8,6 +8,7 @@
 #define BITCOIN_TXMEMPOOL_H
 
 #include <list>
+#include <memory>
 
 #include "addressindex.h"
 #include "spentindex.h"
@@ -18,6 +19,7 @@
 #include "sync.h"
 
 class CAutoFile;
+class TransactionUtxoHasher;
 
 inline double AllowFreeThreshold()
 {
@@ -101,6 +103,7 @@ private:
     bool fSanityCheck; //! Normally false, true if -checkmempool or -regtest
     unsigned int nTransactionsUpdated;
     CMinerPolicyEstimator* minerPolicyEstimator;
+    std::unique_ptr<TransactionUtxoHasher> utxoHasher;
 
     CFeeRate minRelayFee; //! Passed to constructor to avoid dependency on main
     uint64_t totalTxSize; //! sum of all mempool tx' byte sizes
@@ -152,6 +155,9 @@ public:
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
 
+    /** Returns the UTXO hasher instance used in the mempool.  */
+    const TransactionUtxoHasher& GetUtxoHasher() const;
+
     void addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewCache &view);
     bool getAddressIndex(std::vector<std::pair<uint160, int> > &addresses,
                          std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > &results);
@@ -191,6 +197,11 @@ public:
 
     bool lookup(const uint256& hash, CTransaction& result) const;
     bool lookupBareTxid(const uint256& btxid, CTransaction& result) const;
+
+    /** Looks up a transaction by its outpoint for spending.  This takes the
+     *  state of segwit light activation into account for deciding whether to
+     *  use the normal txid or the bare txid map.  */
+    bool lookupOutpoint(const uint256& hash, CTransaction& result) const;
 
     /** Estimate fee rate needed to get into the next nBlocks */
     CFeeRate estimateFee(int nBlocks) const;
