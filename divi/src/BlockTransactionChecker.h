@@ -14,6 +14,7 @@ class CBlock;
 class CValidationState;
 class CCoinsViewCache;
 class CBlockRewards;
+class TransactionUtxoHasher;
 
 class TransactionLocationRecorder
 {
@@ -36,6 +37,7 @@ class BlockTransactionChecker
 private:
     CBlockUndo blockundo_;
     const CBlock& block_;
+    const TransactionUtxoHasher& utxoHasher_;
     CValidationState& state_;
     CBlockIndex* pindex_;
     CCoinsViewCache& view_;
@@ -44,6 +46,7 @@ private:
 public:
     BlockTransactionChecker(
         const CBlock& block,
+        const TransactionUtxoHasher& utxoHasher,
         CValidationState& state,
         CBlockIndex* pindex,
         CCoinsViewCache& view,
