@@ -8,6 +8,7 @@
 #define BITCOIN_TXMEMPOOL_H
 
 #include <list>
+#include <memory>
 
 #include "addressindex.h"
 #include "spentindex.h"
@@ -19,6 +20,7 @@
 
 class BlockMap;
 class CAutoFile;
+class TransactionUtxoHasher;
 
 inline double AllowFreeThreshold()
 {
@@ -102,6 +104,7 @@ private:
     bool fSanityCheck; //! Normally false, true if -checkmempool or -regtest
     unsigned int nTransactionsUpdated;
     CMinerPolicyEstimator* minerPolicyEstimator;
+    std::unique_ptr<TransactionUtxoHasher> utxoHasher;
 
     CFeeRate minRelayFee; //! Passed to constructor to avoid dependency on main
     uint64_t totalTxSize; //! sum of all mempool tx' byte sizes
@@ -169,6 +172,9 @@ public:
                          std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > &results);
 
     bool getSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value);
+
+    /** Returns the UTXO hasher instance used in the mempool.  */
+    const TransactionUtxoHasher& GetUtxoHasher() const;
 
     /** Affect CreateNewBlock prioritisation of transactions */
     void PrioritiseTransaction(const uint256 hash, const std::string strHash, double dPriorityDelta, const CAmount& nFeeDelta);

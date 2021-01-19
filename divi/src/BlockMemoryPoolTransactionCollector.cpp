@@ -337,10 +337,10 @@ std::vector<PrioritizedTransactionData> BlockMemoryPoolTransactionCollector::Pri
         nBlockSigOps += nTxSigOps;
 
         CTxUndo txundo;
-        UpdateCoinsWithTransaction(tx, view, txundo, nHeight);
+        UpdateCoinsWithTransaction(tx, view, txundo, mempool_.GetUtxoHasher(), nHeight);
 
         // Add transactions that depend on this one to the priority queue
-        AddDependingTransactionsToPriorityQueue(dependentTransactions, hash, vecPriority, comparer);
+        AddDependingTransactionsToPriorityQueue(dependentTransactions, mempool_.GetUtxoHasher().GetUtxoHash(tx), vecPriority, comparer);
     }
 
     LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
