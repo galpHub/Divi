@@ -63,6 +63,7 @@ BITCOIN_TESTS =\
   test/MockBlockIncentivesPopulator.h \
   test/MockBlockSubsidyProvider.h \
   test/MockPoSStakeModifierService.h \
+  test/MockUtxoHasher.cpp \
   test/MockVaultManagerDatabase.h \
   test/monthlywalletbackupcreator_tests.cpp \
   test/ActiveMasternode_tests.cpp \
@@ -101,6 +102,7 @@ BITCOIN_TESTS =\
   test/PoSStakeModifierService_tests.cpp \
   test/LegacyPoSStakeModifierService_tests.cpp \
   test/LotteryWinnersCalculatorTests.cpp \
+  test/UtxoCheckingAndUpdating_tests.cpp \
   test/VaultManager_tests.cpp \
   test/multi_wallet_tests.cpp
 
