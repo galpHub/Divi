@@ -1,5 +1,6 @@
 #include <UtxoCheckingAndUpdating.h>
 
+#include <ForkActivation.h>
 #include <primitives/transaction.h>
 #include <Logging.h>
 #include <coins.h>
@@ -16,6 +17,8 @@ extern BlockMap mapBlockIndex;
 
 uint256 BlockUtxoHasher::GetUtxoHash(const CTransaction& tx) const
 {
+    if (as.IsActive(Fork::SegwitLight))
+        return tx.GetBareTxid();
     return tx.GetHash();
 }
 
