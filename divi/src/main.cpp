@@ -21,6 +21,7 @@
 #include "coins.h"
 #include <defaultValues.h>
 #include "FeeRate.h"
+#include "ForkActivation.h"
 #include "init.h"
 #include "kernel.h"
 #include "libzerocoin/bignum.h"
@@ -1074,7 +1075,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     LogWalletBalance();
     static const CChainParams& chainParameters = Params();
 
-    const BlockUtxoHasher utxoHasher;
+    const ActivationState as(block);
+    const BlockUtxoHasher utxoHasher(as);
 
     VerifyBestBlockIsAtPreviousBlock(pindex,view);
     if (block.GetHash() == Params().HashGenesisBlock())
@@ -2346,7 +2348,8 @@ bool static LoadBlockIndexDB(string& strError)
                     strError = "The wallet has been not been closed gracefully and has caused corruption of blocks stored to disk. Data directory is in an unusable state";
                     return false;
                 }
-                const BlockUtxoHasher utxoHasher;
+                const ActivationState as(block);
+                const BlockUtxoHasher utxoHasher(as);
 
                 std::vector<CTxUndo> vtxundo;
                 vtxundo.reserve(block.vtx.size() - 1);

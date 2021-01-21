@@ -7,6 +7,7 @@
 #include "txmempool.h"
 
 #include "clientversion.h"
+#include "ForkActivation.h"
 #include "main.h"
 #include "streams.h"
 #include "Logging.h"
@@ -363,7 +364,11 @@ public:
 namespace
 {
 
-/** The UTXO hasher used in mempool logic.  */
+/** The UTXO hasher used in mempool logic.  It uses the state of segwit-light
+ *  based on the latest chain tip (since we can't know when a particular
+ *  transaction will be confirmed / what the real activation state will be then).
+ *  Spending of unconfirmed change around the fork will be discouraged by
+ *  policy, so that this should not be an issue in practice.  */
 class MempoolUtxoHasher : public TransactionUtxoHasher
 {
 
@@ -371,6 +376,9 @@ public:
 
   OutputHash GetUtxoHash(const CTransaction& tx) const override
   {
+      const ActivationState as(chainActive.Tip());
+      if (as.IsActive(Fork::SegwitLight))
+          return OutputHash(tx.GetBareTxid());
       return OutputHash(tx.GetHash());
   }
 
