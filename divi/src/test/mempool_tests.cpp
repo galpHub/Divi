@@ -2,25 +2,42 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "main.h"
 #include "txmempool.h"
+
+#include "blockmap.h"
+#include "MockUtxoHasher.h"
 
 #include <boost/test/unit_test.hpp>
 #include <list>
 
+extern CChain chainActive;
+extern BlockMap mapBlockIndex;
+
 class MempoolTestFixture
 {
+
+private:
+
+  /** Empty coins view used to back the cached view we actually use.  */
+  CCoinsView emptyView;
+
+  /** Tip of our fake chain.  */
+  CBlockIndex tip;
 
 protected:
 
   /** A parent transaction.  */
   CMutableTransaction txParent;
 
-  /** Three children of the parent.  */
+  /** Three children of the parent.  They use the bare txid for their UTXOs
+   *  in our UTXO hasher.  */
   CMutableTransaction txChild[3];
 
   /** Three grand children.  */
   CMutableTransaction txGrandChild[3];
+
+  /** Coins view with the parent inputs.  */
+  CCoinsViewCache view;
 
   /** The test mempool instance.  */
   CTxMemPool testPool;
@@ -28,13 +45,24 @@ protected:
 public:
 
   MempoolTestFixture()
-    : testPool(CFeeRate(0))
+    : view(&emptyView), testPool(CFeeRate(0))
   {
-    txParent.vin.resize(2);
+    std::unique_ptr<MockUtxoHasher> utxoHasher(new MockUtxoHasher());
+
+    CMutableTransaction base;
+    base.vout.emplace_back(99000LL, CScript() << OP_11 << OP_EQUAL);
+    view.ModifyCoins(base.GetHash())->FromTx(base, 0);
+
+    tip.pprev = nullptr;
+    tip.nHeight = 0;
+    mapBlockIndex[tip.GetBlockHeader().GetHash()] = &tip;
+    view.SetBestBlock(tip.GetBlockHeader().GetHash());
+    chainActive.SetTip(&tip);
+
+    txParent.vin.resize(1);
     txParent.vin[0].scriptSig = CScript() << OP_11;
-    /* Add a second input to make sure the transaction does not qualify as
-       coinbase and thus has a bare txid unequal to its normal hash.  */
-    txParent.vin[1].scriptSig = CScript() << OP_12;
+    txParent.vin[0].prevout.hash = base.GetHash();
+    txParent.vin[0].prevout.n = 0;
     txParent.vout.resize(3);
     for (int i = 0; i < 3; i++)
     {
@@ -52,18 +80,39 @@ public:
         txChild[i].vout.resize(1);
         txChild[i].vout[0].scriptPubKey = CScript() << OP_11 << OP_EQUAL;
         txChild[i].vout[0].nValue = 11000LL;
+        utxoHasher->UseBareTxid(txChild[i]);
     }
 
     for (int i = 0; i < 3; i++)
     {
         txGrandChild[i].vin.resize(1);
         txGrandChild[i].vin[0].scriptSig = CScript() << OP_11;
-        txGrandChild[i].vin[0].prevout.hash = txChild[i].GetHash();
+        txGrandChild[i].vin[0].prevout.hash = txChild[i].GetBareTxid();
         txGrandChild[i].vin[0].prevout.n = 0;
         txGrandChild[i].vout.resize(1);
         txGrandChild[i].vout[0].scriptPubKey = CScript() << OP_11 << OP_EQUAL;
         txGrandChild[i].vout[0].nValue = 11000LL;
     }
+
+    testPool.setSanityCheck(true);
+    testPool.SetUtxoHasherForTesting(std::move(utxoHasher));
+    testPool.clear();
+  }
+
+  ~MempoolTestFixture()
+  {
+    mapBlockIndex.clear();
+  }
+
+  /** Adds the parent, childs and grandchilds to the mempool.  */
+  void AddAll()
+  {
+      testPool.addUnchecked(txParent.GetHash(), CTxMemPoolEntry(txParent, 0, 0, 0.0, 1));
+      for (int i = 0; i < 3; i++)
+      {
+          testPool.addUnchecked(txChild[i].GetHash(), CTxMemPoolEntry(txChild[i], 0, 0, 0.0, 1));
+          testPool.addUnchecked(txGrandChild[i].GetHash(), CTxMemPoolEntry(txGrandChild[i], 0, 0, 0.0, 1));
+      }
   }
 
 };
@@ -87,12 +136,10 @@ BOOST_AUTO_TEST_CASE(MempoolRemoveTest)
     removed.clear();
     
     // Parent, children, grandchildren:
-    testPool.addUnchecked(txParent.GetHash(), CTxMemPoolEntry(txParent, 0, 0, 0.0, 1));
-    for (int i = 0; i < 3; i++)
-    {
-        testPool.addUnchecked(txChild[i].GetHash(), CTxMemPoolEntry(txChild[i], 0, 0, 0.0, 1));
-        testPool.addUnchecked(txGrandChild[i].GetHash(), CTxMemPoolEntry(txGrandChild[i], 0, 0, 0.0, 1));
-    }
+    AddAll();
+
+    testPool.check(&view);
+
     // Remove Child[0], GrandChild[0] should be removed:
     testPool.remove(txChild[0], removed, true);
     BOOST_CHECK_EQUAL(removed.size(), 2);
@@ -127,12 +174,7 @@ BOOST_AUTO_TEST_CASE(MempoolIndexByBareTxid)
     CTransaction tx;
     std::list<CTransaction> removed;
 
-    testPool.addUnchecked(txParent.GetHash(), CTxMemPoolEntry(txParent, 0, 0, 0.0, 1));
-    for (int i = 0; i < 3; ++i)
-    {
-        testPool.addUnchecked(txChild[i].GetHash(), CTxMemPoolEntry(txChild[i], 0, 0, 0.0, 1));
-        testPool.addUnchecked(txGrandChild[i].GetHash(), CTxMemPoolEntry(txGrandChild[i], 0, 0, 0.0, 1));
-    }
+    AddAll();
 
     BOOST_CHECK(testPool.lookupBareTxid(txParent.GetBareTxid(), tx));
     BOOST_CHECK(tx.GetHash() == txParent.GetHash());
@@ -142,6 +184,30 @@ BOOST_AUTO_TEST_CASE(MempoolIndexByBareTxid)
     BOOST_CHECK(!testPool.lookupBareTxid(txParent.GetBareTxid(), tx));
     BOOST_CHECK(!testPool.lookupBareTxid(txChild[0].GetBareTxid(), tx));
     BOOST_CHECK(!testPool.lookupBareTxid(txGrandChild[0].GetBareTxid(), tx));
+}
+
+BOOST_AUTO_TEST_CASE(MempoolOutpointLookup)
+{
+    CTransaction tx;
+    CCoins coins;
+
+    AddAll();
+    CCoinsViewMemPool viewPool(&view, testPool);
+
+    BOOST_CHECK(testPool.lookupOutpoint(txParent.GetHash(), tx));
+    BOOST_CHECK(!testPool.lookupOutpoint(txParent.GetBareTxid(), tx));
+    BOOST_CHECK(!testPool.lookupOutpoint(txChild[0].GetHash(), tx));
+    BOOST_CHECK(testPool.lookupOutpoint(txChild[0].GetBareTxid(), tx));
+
+    BOOST_CHECK(viewPool.HaveCoins(txParent.GetHash()));
+    BOOST_CHECK(viewPool.GetCoins(txParent.GetHash(), coins));
+    BOOST_CHECK(!viewPool.HaveCoins(txParent.GetBareTxid()));
+    BOOST_CHECK(!viewPool.GetCoins(txParent.GetBareTxid(), coins));
+
+    BOOST_CHECK(!viewPool.HaveCoins(txChild[0].GetHash()));
+    BOOST_CHECK(!viewPool.GetCoins(txChild[0].GetHash(), coins));
+    BOOST_CHECK(viewPool.HaveCoins(txChild[0].GetBareTxid()));
+    BOOST_CHECK(viewPool.GetCoins(txChild[0].GetBareTxid(), coins));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

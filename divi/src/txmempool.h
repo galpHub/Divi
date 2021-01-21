@@ -158,6 +158,10 @@ public:
     /** Returns the UTXO hasher instance used in the mempool.  */
     const TransactionUtxoHasher& GetUtxoHasher() const;
 
+    /** Replaces the UTXO hasher used in the mempool with the given instance,
+     *  which allows dependency injection for unit tests.  */
+    void SetUtxoHasherForTesting(std::unique_ptr<TransactionUtxoHasher> hasher);
+
     void addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewCache &view);
     bool getAddressIndex(std::vector<std::pair<uint160, int> > &addresses,
                          std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > &results);
