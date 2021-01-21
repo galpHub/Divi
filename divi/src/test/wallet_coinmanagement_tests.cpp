@@ -453,9 +453,7 @@ BOOST_AUTO_TEST_CASE(willUseUtxoHashForSpendingCoins)
     wallet.FakeAddToChain(wtx);
 
     const CScript sendTo = CScript() << OP_TRUE;
-    std::string strError;
     CReserveKey reserveKey(wallet);
-    CAmount nFeeRequired;
     CWalletTx wtxNew;
     BOOST_CHECK(wallet.CreateTransaction({{sendTo, COIN / 10}}, wtxNew, reserveKey, ALL_SPENDABLE_COINS, nullptr).second);
 

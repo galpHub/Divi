@@ -25,12 +25,15 @@ const std::unordered_map<Fork, int64_t,std::hash<int>> ACTIVATION_TIMES = {
   {Fork::TestByTimestamp, 1000000000},
   {Fork::HardenedStakeModifier, unixTimestampForDec31stMidnight},
   {Fork::UniformLotteryWinners, unixTimestampForDec31stMidnight},
+  /* FIXME: Set real activation time for segwit light.  It is after
+     staking vaults.  */
+  {Fork::SegwitLight, 2000000000},
 };
 
 } // anonymous namespace
 
 ActivationState::ActivationState(const CBlockIndex* pi)
-  : nTime(pi->nTime)
+  : nTime(pi == nullptr ? 0 : pi->nTime)
 {}
 
 ActivationState::ActivationState(const CBlockHeader& block)
