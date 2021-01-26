@@ -254,7 +254,7 @@ bool CheckProofOfStakeContextAndRecoverStakingData(
     uint256 hashBlock;
     CTransaction txPrev;
     if (!GetTransaction(txin.prevout.hash, txPrev, hashBlock, true))
-        return error("CheckProofOfStake() : INFO: read txPrev failed");
+        return error("CheckProofOfStake() : INFO: read txPrev failed for %s", txin.prevout.hash.GetHex());
 
     const CScript &kernelScript = txPrev.vout[txin.prevout.n].scriptPubKey;
 
