@@ -102,7 +102,7 @@ Value allocatefunds(const Array& params, bool fHelp)
     SendMoney(acctAddr.Get(), CMasternode::GetTierCollateralAmount(nMasternodeTier), wtx);
 
     Object obj;
-    obj.push_back(Pair("txhash", wtx.GetHash().GetHex()));
+    obj.push_back(Pair("txhash", pwalletMain->GetUtxoHash(wtx).GetHex()));
     return obj;
 }
 
