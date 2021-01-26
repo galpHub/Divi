@@ -127,8 +127,8 @@ bool PoSTransactionCreator::SetSuportedStakingScript(
     const StakableCoin& stakableCoin,
     CMutableTransaction& txNew)
 {
-    txNew.vin.push_back(CTxIn(stakableCoin.tx->GetHash(), stakableCoin.outputIndex));
-    txNew.vout.push_back(CTxOut(0, stakableCoin.tx->vout[stakableCoin.outputIndex].scriptPubKey ));
+    txNew.vin.emplace_back(wallet_.GetUtxoHash(*stakableCoin.tx), stakableCoin.outputIndex);
+    txNew.vout.emplace_back(0, stakableCoin.tx->vout[stakableCoin.outputIndex].scriptPubKey);
 
     return true;
 }
@@ -145,7 +145,7 @@ void PoSTransactionCreator::CombineUtxos(
     for(const StakableCoin& pcoin : stakedCoins_->asSet())
     {
         if(pcoin.tx->vout[pcoin.outputIndex].scriptPubKey == txNew.vout[1].scriptPubKey &&
-            pcoin.tx->GetHash() != txNew.vin[0].prevout.hash)
+            wallet_.GetUtxoHash(*pcoin.tx) != txNew.vin[0].prevout.hash)
         {
             if(pcoin.tx->vout[pcoin.outputIndex].nValue + nCredit > nCombineThreshold)
                 continue;
@@ -166,7 +166,7 @@ void PoSTransactionCreator::CombineUtxos(
             nCredit + pcoin.tx->vout[pcoin.outputIndex].nValue > nCombineThreshold)
             break;
 
-        txNew.vin.push_back(CTxIn(pcoin.tx->GetHash(), pcoin.outputIndex));
+        txNew.vin.emplace_back(wallet_.GetUtxoHash(*pcoin.tx), pcoin.outputIndex);
         nCredit += pcoin.tx->vout[pcoin.outputIndex].nValue;
         walletTransactions.push_back(pcoin.tx);
     }

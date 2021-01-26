@@ -26,6 +26,8 @@
 #include <reservekey.h>
 #include <OutputEntry.h>
 
+#include <memory>
+
 class CKeyMetadata;
 class CKey;
 class CBlock;
@@ -35,6 +37,7 @@ class CBlockIndex;
 struct StakableCoin;
 class WalletTransactionRecord;
 class SpentOutputTracker;
+class TransactionUtxoHasher;
 
 //! -paytxfee default
 static const CAmount DEFAULT_TRANSACTION_FEE = 0;
@@ -133,6 +136,7 @@ public:
 private:
     std::unique_ptr<WalletTransactionRecord> transactionRecord_;
     std::unique_ptr<SpentOutputTracker> outputTracker_;
+    std::unique_ptr<TransactionUtxoHasher> utxoHasher;
     const CChain& chainActive_;
     const BlockMap& mapBlockIndex_;
     int64_t orderedTransactionIndex;
@@ -238,6 +242,10 @@ public:
     void UnlockAllCoins();
     void ListLockedCoins(CoinVector& vOutpts);
     CAmount GetTotalValue(Inputs vCoins);
+
+    /** Returns the UTXO hash that should be used for spending outputs
+     *  from the given transaction (which should be part of the wallet).  */
+    uint256 GetUtxoHash(const CMerkleTx& tx) const;
 
     //  keystore implementation
     // Generate a new key

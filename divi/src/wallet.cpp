@@ -36,6 +36,7 @@
 #include <Logging.h>
 #include <StakableCoin.h>
 #include <SpentOutputTracker.h>
+#include <UtxoCheckingAndUpdating.h>
 #include <WalletTx.h>
 #include <WalletTransactionRecord.h>
 
@@ -177,10 +178,31 @@ bool WriteTxToDisk(const CWallet* walletPtr, const CWalletTx& transactionToWrite
     return CWalletDB(walletPtr->strWalletFile).WriteTx(transactionToWrite.GetHash(),transactionToWrite);
 }
 
+namespace
+{
+
+/** Dummy UTXO hasher for the wallet.  For now, this just always returns
+ *  the normal txid, but we will later change it to return the proper hash
+ *  for a WalletTx.  */
+class WalletUtxoHasher : public TransactionUtxoHasher
+{
+
+public:
+
+  uint256 GetUtxoHash(const CTransaction& tx) const override
+  {
+    return tx.GetHash();
+  }
+
+};
+
+} // anonymous namespace
+
 CWallet::CWallet(const CChain& chain, const BlockMap& blockMap
     ): cs_wallet()
     , transactionRecord_(new WalletTransactionRecord(cs_wallet,strWalletFile) )
     , outputTracker_( new SpentOutputTracker(*transactionRecord_) )
+    , utxoHasher(new WalletUtxoHasher() )
     , chainActive_(chain)
     , mapBlockIndex_(blockMap)
     , orderedTransactionIndex()
@@ -336,7 +358,7 @@ CAmount CWallet::GetDebit(const CWalletTx& tx, const isminefilter& filter) const
 CAmount CWallet::ComputeCredit(const CWalletTx& tx, const isminefilter& filter, int creditFilterFlags) const
 {
     CAmount nCredit = 0;
-    uint256 hash = tx.GetHash();
+    const uint256 hash = GetUtxoHash(tx);
     for (unsigned int i = 0; i < tx.vout.size(); i++) {
         if( (creditFilterFlags & REQUIRE_UNSPENT) && IsSpent(tx,i)) continue;
         if( (creditFilterFlags & REQUIRE_UNLOCKED) && IsLockedCoin(hash,i)) continue;
@@ -934,7 +956,7 @@ set<uint256> CWallet::GetConflicts(const uint256& txid) const
  */
 bool CWallet::IsSpent(const CWalletTx& wtx, unsigned int n) const
 {
-    return outputTracker_->IsSpent(wtx.GetHash(), n);
+    return outputTracker_->IsSpent(GetUtxoHash(wtx), n);
 }
 
 bool CWallet::GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet, CKey& keyRet, std::string strTxHash, std::string strOutputIndex)
@@ -979,7 +1001,7 @@ bool CWallet::GetVinAndKeysFromOutput(COutput out, CTxIn& txinRet, CPubKey& pubK
 
     CScript pubScript;
 
-    txinRet = CTxIn(out.tx->GetHash(), out.i);
+    txinRet = CTxIn(GetUtxoHash(*out.tx), out.i);
     pubScript = out.tx->vout[out.i].scriptPubKey; // the inputs PubKey
 
     CTxDestination address1;
@@ -1709,7 +1731,7 @@ bool CWallet::IsAvailableForSpending(const CWalletTx* pcoin, unsigned int i, con
         }
     }
 
-    const uint256 hash = pcoin->GetHash();
+    const uint256 hash = GetUtxoHash(*pcoin);
 
     if (IsSpent(*pcoin, i))
         return false;
@@ -2223,8 +2245,8 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
                 }
 
                 // Fill vin
-                BOOST_FOREACH (const PAIRTYPE(const CWalletTx*, unsigned int) & coin, setCoins)
-                        txNew.vin.push_back(CTxIn(coin.first->GetHash(), coin.second));
+                for (const auto& coin : setCoins)
+                    txNew.vin.emplace_back(GetUtxoHash(*coin.first), coin.second);
 
                 // Sign
                 int nIn = 0;
@@ -2381,6 +2403,11 @@ CAmount CWallet::GetTotalValue(std::vector<CTxIn> vCoins)
         }
     }
     return nTotalValue;
+}
+
+uint256 CWallet::GetUtxoHash(const CMerkleTx& tx) const
+{
+    return utxoHasher->GetUtxoHash(tx);
 }
 
 DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
