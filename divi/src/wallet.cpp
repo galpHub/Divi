@@ -180,28 +180,52 @@ bool WriteTxToDisk(const CWallet* walletPtr, const CWalletTx& transactionToWrite
 namespace
 {
 
-/** Dummy UTXO hasher for the wallet.  For now, this just always returns
- *  the normal txid, but we will later change it to return the proper hash
- *  for a WalletTx.  */
+/** UTXO hasher for wallet transactions.  It uses the transaction's known block
+ *  hash (from CMerkleTx) to determine the activation state of segwit light.  */
 class WalletUtxoHasher : public TransactionUtxoHasher
 {
 
+private:
+
+  const CChain& chainActive_;
+
 public:
+
+  WalletUtxoHasher(const CChain& chain)
+    : chainActive_(chain)
+  {}
 
   OutputHash GetUtxoHash(const CTransaction& tx) const override
   {
-    return OutputHash(tx.GetHash());
+    const CMerkleTx* mtx = dynamic_cast<const CMerkleTx*>(&tx);
+    assert(mtx != nullptr);
+
+    const CBlockIndex* pindexBlock = nullptr;
+    const int depth = mtx->GetNumberOfBlockConfirmations(pindexBlock);
+
+    /* If the transaction is not yet confirmed in a block, we use the current
+       tip to determine the segwit-light activation status.  This is not
+       perfect around the activation time, but there is nothing we can do
+       in that case anyway.  Mempool and wallet discourage spending unconfirmed
+       outputs around the segwit-light fork anyway.  */
+    if (depth <= 0)
+        pindexBlock = chainActive_.Tip();
+
+    assert(pindexBlock != nullptr);
+    const ActivationState as(pindexBlock);
+
+    return OutputHash(as.IsActive(Fork::SegwitLight) ? mtx->GetBareTxid() : mtx->GetHash());
   }
 
 };
 
-} // anonymous namespace
+}
 
 CWallet::CWallet(const CChain& chain, const BlockMap& blockMap
     ): cs_wallet()
     , transactionRecord_(new WalletTransactionRecord(cs_wallet,strWalletFile) )
     , outputTracker_( new SpentOutputTracker(*transactionRecord_) )
-    , utxoHasher(new WalletUtxoHasher() )
+    , utxoHasher(new WalletUtxoHasher(chain) )
     , chainActive_(chain)
     , mapBlockIndex_(blockMap)
     , orderedTransactionIndex()

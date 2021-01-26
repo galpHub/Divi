@@ -1,15 +1,15 @@
 #ifndef STAKABLE_COIN_H
 #define STAKABLE_COIN_H
+#include <merkletx.h>
 #include <uint256.h>
-#include <primitives/transaction.h>
 struct StakableCoin
 {
-    const CTransaction* tx;
+    const CMerkleTx* tx;
     COutPoint utxo;
     uint256 blockHashOfFirstConfirmation;
 
     explicit StakableCoin(
-        const CTransaction& txIn,
+        const CMerkleTx& txIn,
         const COutPoint& utxoIn,
         uint256 blockHashIn
         ): tx(&txIn)
