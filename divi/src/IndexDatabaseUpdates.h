@@ -9,12 +9,25 @@
 class CTransaction;
 class TransactionUtxoHasher;
 
+/** One entry in the tx index, which locates transactions on disk by their txid
+ *  or bare txid (both keys are possible).  */
+struct TxIndexEntry
+{
+    uint256 txid;
+    uint256 bareTxid;
+    CDiskTxPos diskPos;
+
+    explicit TxIndexEntry(const uint256& t, const uint256& b, const CDiskTxPos& p)
+      : txid(t), bareTxid(b), diskPos(p)
+    {}
+};
+
 struct IndexDatabaseUpdates
 {
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
-    std::vector<std::pair<uint256, CDiskTxPos> > txLocationData;
+    std::vector<TxIndexEntry> txLocationData;
 
     IndexDatabaseUpdates();
 };
