@@ -28,6 +28,7 @@ struct CAddressUnspentValue;
 struct CDiskTxPos;
 struct CCoinsStats;
 struct CSpentIndexValue;
+struct TxIndexEntry;
 
 //! -dbcache default (MiB)
 static const int64_t nDefaultDbCache = 100;
@@ -71,7 +72,7 @@ public:
     bool WriteReindexing(bool fReindex);
     bool ReadReindexing(bool& fReindex);
     bool ReadTxIndex(const uint256& txid, CDiskTxPos& pos);
-    bool WriteTxIndex(const std::vector<std::pair<uint256, CDiskTxPos> >& list);
+    bool WriteTxIndex(const std::vector<TxIndexEntry>& list);
     bool WriteAddressIndex(const std::vector<std::pair<CAddressIndexKey, CAmount> > &vect);
     bool EraseAddressIndex(const std::vector<std::pair<CAddressIndexKey, CAmount> > &vect);
     bool ReadAddressIndex(uint160 addressHash, int type,
