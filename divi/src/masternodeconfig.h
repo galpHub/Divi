@@ -24,17 +24,20 @@ public:
         std::string privKey;
         std::string txHash;
         std::string outputIndex;
+        std::string rewardAddress;
 
     public:
         CMasternodeEntry(const std::string& alias, const std::string& ip,
                          const std::string& privKey,
-                         const std::string& txHash, const std::string& outputIndex)
+                         const std::string& txHash, const std::string& outputIndex,
+                         const std::string& rewardAddress)
         {
             this->alias = alias;
             this->ip = ip;
             this->privKey = privKey;
             this->txHash = txHash;
             this->outputIndex = outputIndex;
+            this->rewardAddress = rewardAddress;
         }
 
         const std::string& getAlias() const
@@ -88,6 +91,16 @@ public:
         {
             this->ip = ip;
         }
+
+        const std::string& getRewardAddress() const
+        {
+            return rewardAddress;
+        }
+
+        void setRewardAddress(const std::string& addr)
+        {
+            this->rewardAddress = addr;
+        }
     };
 
     CMasternodeConfig();
@@ -95,7 +108,8 @@ public:
     void clear();
     bool read(const Settings& settings, std::string& strErr);
     void add(const std::string& alias, const std::string& ip, const std::string& privKey,
-             const std::string& txHash, const std::string& outputIndex);
+             const std::string& txHash, const std::string& outputIndex,
+             const std::string& rewardAddr);
     const std::vector<CMasternodeEntry>& getEntries() const;
     int getCount() const;
 

@@ -99,6 +99,7 @@ public:
     /** Returns the "default" reward script, which is the one
      *  matching the collateral address.  */
     CScript GetDefaultRewardScript() const;
+    static CScript GetDefaultRewardScript(const CPubKey& pubKeyCollateralAddress);
 
     /** Calculates the score of the current masternode, based on the given
      *  seed hash.  It should be the result of GetBlockHashForScoring of
@@ -162,6 +163,7 @@ private:
         const CService& newAddr,
         const CTxIn& newVin,
         const CPubKey& pubKeyCollateralAddress,
+        const CScript& rewardScriptIn,
         const CPubKey& pubKeyMasternode,
         MasternodeTier nMasternodeTier,
         int protocolVersionIn);

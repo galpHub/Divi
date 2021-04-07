@@ -136,6 +136,11 @@ CMasternode& CMasternode::operator=(CMasternode from)
 
 CScript CMasternode::GetDefaultRewardScript() const
 {
+    return GetDefaultRewardScript(pubKeyCollateralAddress);
+}
+
+CScript CMasternode::GetDefaultRewardScript(const CPubKey& pubKeyCollateralAddress)
+{
     return GetScriptForDestination(pubKeyCollateralAddress.GetID());
 }
 
@@ -270,13 +275,13 @@ bool CMasternode::IsValidNetAddr() const
 
 CMasternodeBroadcast::CMasternodeBroadcast(
     const CService& newAddr, const CTxIn& newVin,
-    const CPubKey& pubKeyCollateralAddressNew, const CPubKey& pubKeyMasternodeNew,
+    const CPubKey& pubKeyCollateralAddressNew, const CScript& rewardScriptIn, const CPubKey& pubKeyMasternodeNew,
     const MasternodeTier nMasternodeTier, const int protocolVersionIn)
 {
     vin = newVin;
     addr = newAddr;
     pubKeyCollateralAddress = pubKeyCollateralAddressNew;
-    rewardScript = GetDefaultRewardScript();
+    rewardScript = rewardScriptIn;
     pubKeyMasternode = pubKeyMasternodeNew;
     protocolVersion = protocolVersionIn;
     nTier = nMasternodeTier;
