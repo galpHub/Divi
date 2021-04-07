@@ -25,9 +25,10 @@ boost::filesystem::path GetMasternodeConfigFile()
 }
 
 void CMasternodeConfig::add(const std::string& alias, const std::string& ip, const std::string& privKey,
-                            const std::string& txHash, const std::string& outputIndex)
+                            const std::string& txHash, const std::string& outputIndex,
+                            const std::string& rewardAddr)
 {
-    entries.emplace_back(alias, ip, privKey, txHash, outputIndex);
+    entries.emplace_back(alias, ip, privKey, txHash, outputIndex, rewardAddr);
 }
 
 bool CMasternodeConfig::read(std::string& strErr)
@@ -71,7 +72,12 @@ bool CMasternodeConfig::read(std::string& strErr)
             }
         }
 
-        add(alias, ip, privKey, txHash, outputIndex);
+        /* This might fail if there is no address, but that is fine and we will
+           just leave the string empty in that case.  */
+        std::string rewardAddr;
+        iss >> rewardAddr;
+
+        add(alias, ip, privKey, txHash, outputIndex, rewardAddr);
     }
 
     streamConfig.close();
