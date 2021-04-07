@@ -7,6 +7,7 @@
 #include <obfuscation.h>
 #include <chain.h>
 #include <base58address.h>
+#include <script/standard.h>
 #include <TransactionDiskAccessor.h>
 #include <timedata.h>
 #include <WalletTx.h>
@@ -127,6 +128,7 @@ bool createArgumentsFromConfig(
     bool collateralPrivKeyIsRemote,
     CTxIn& txin,
     std::pair<CKey,CPubKey>& masternodeKeyPair,
+    CScript& rewardScript,
     std::pair<CKey,CPubKey>& masternodeCollateralKeyPair,
     MasternodeTier& nMasternodeTier)
 {
@@ -165,6 +167,18 @@ bool createArgumentsFromConfig(
     {
         return false;
     }
+
+    if (configEntry.getRewardAddress().empty())
+        rewardScript = CMasternode::GetDefaultRewardScript(masternodeCollateralKeyPair.second);
+    else {
+        const CBitcoinAddress addr(configEntry.getRewardAddress());
+        if (!addr.IsValid()) {
+            strErrorRet = strprintf("Invalid reward address for masternode: %s", configEntry.getRewardAddress());
+            return false;
+        }
+        rewardScript = GetScriptForDestination(addr.Get());
+    }
+
     return true;
 }
 
@@ -182,6 +196,7 @@ bool CMasternodeBroadcastFactory::Create(
     const bool deferRelay = true;
     CTxIn txin;
     std::pair<CKey,CPubKey> masternodeCollateralKeyPair;
+    CScript rewardScript;
     std::pair<CKey,CPubKey> masternodeKeyPair;
     MasternodeTier nMasternodeTier;
 
@@ -193,6 +208,7 @@ bool CMasternodeBroadcastFactory::Create(
         collateralPrivateKeyIsRemote,
         txin,
         masternodeKeyPair,
+        rewardScript,
         masternodeCollateralKeyPair,
         nMasternodeTier))
     {
@@ -203,6 +219,7 @@ bool CMasternodeBroadcastFactory::Create(
         txin,
         CService(configEntry.getIp()),
         pubkeyCollateralAddress,
+        rewardScript,
         masternodeKeyPair.second,
         nMasternodeTier,
         deferRelay,
@@ -232,6 +249,7 @@ bool CMasternodeBroadcastFactory::Create(
 
     CTxIn txin;
     std::pair<CKey,CPubKey> masternodeCollateralKeyPair;
+    CScript rewardScript;
     std::pair<CKey,CPubKey> masternodeKeyPair;
     MasternodeTier nMasternodeTier;
 
@@ -243,6 +261,7 @@ bool CMasternodeBroadcastFactory::Create(
         collateralPrivateKeyIsRemote,
         txin,
         masternodeKeyPair,
+        rewardScript,
         masternodeCollateralKeyPair,
         nMasternodeTier))
     {
@@ -253,6 +272,7 @@ bool CMasternodeBroadcastFactory::Create(
                 CService(strService),
                 masternodeCollateralKeyPair.first,
                 masternodeCollateralKeyPair.second,
+                rewardScript,
                 masternodeKeyPair.first,
                 masternodeKeyPair.second,
                 nMasternodeTier,
@@ -334,6 +354,7 @@ void CMasternodeBroadcastFactory::createWithoutSignatures(
     const CTxIn& txin,
     const CService& service,
     const CPubKey& pubKeyCollateralAddressNew,
+    const CScript& rewardScript,
     const CPubKey& pubKeyMasternodeNew,
     const MasternodeTier nMasternodeTier,
     bool deferRelay,
@@ -343,7 +364,9 @@ void CMasternodeBroadcastFactory::createWithoutSignatures(
              CBitcoinAddress(pubKeyCollateralAddressNew.GetID()).ToString(),
              pubKeyMasternodeNew.GetID().ToString());
 
-    mnbRet = CMasternodeBroadcast(service, txin, pubKeyCollateralAddressNew, pubKeyMasternodeNew, nMasternodeTier, PROTOCOL_VERSION);
+    mnbRet = CMasternodeBroadcast(service, txin,
+                                  pubKeyCollateralAddressNew, rewardScript, pubKeyMasternodeNew,
+                                  nMasternodeTier, PROTOCOL_VERSION);
     const CMasternodePing mnp = (deferRelay
                                     ? createDelayedMasternodePing(mnbRet)
                                     : createCurrentPing(txin));
@@ -372,6 +395,7 @@ bool CMasternodeBroadcastFactory::Create(
     const CService& service,
     const CKey& keyCollateralAddressNew,
     const CPubKey& pubKeyCollateralAddressNew,
+    const CScript& rewardScript,
     const CKey& keyMasternodeNew,
     const CPubKey& pubKeyMasternodeNew,
     const MasternodeTier nMasternodeTier,
@@ -383,7 +407,7 @@ bool CMasternodeBroadcastFactory::Create(
     if (fImporting || fReindex) return false;
 
     createWithoutSignatures(
-        txin,service,pubKeyCollateralAddressNew,pubKeyMasternodeNew,nMasternodeTier,deferRelay,mnbRet);
+        txin,service,pubKeyCollateralAddressNew,rewardScript,pubKeyMasternodeNew,nMasternodeTier,deferRelay,mnbRet);
 
     if(!provideSignatures(keyMasternodeNew,pubKeyMasternodeNew,keyCollateralAddressNew,mnbRet,strErrorRet))
     {

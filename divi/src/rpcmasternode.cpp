@@ -269,7 +269,7 @@ Value setupmasternode(const Array& params, bool fHelp)
     if (ipAndPort.find(':') == std::string::npos)
         ipAndPort += ":" + std::to_string(Params().GetDefaultPort());
 
-    CMasternodeConfig::CMasternodeEntry config(alias,ipAndPort,CBitcoinSecret(masternodeKey).ToString(),txHash,outputIndex);
+    CMasternodeConfig::CMasternodeEntry config(alias,ipAndPort,CBitcoinSecret(masternodeKey).ToString(),txHash,outputIndex, "");
 
     CMasternodeBroadcast mnb;
     std::string errorMsg;
