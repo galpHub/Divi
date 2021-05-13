@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 The DIVI developers
+# Copyright (c) 2020-2021 The DIVI developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -78,7 +78,7 @@ class MnVaultsTest (BitcoinTestFramework):
       args.append ("-masternodeprivkey=%s" % self.cfg.privkey)
 
     if self.cfg:
-      cfg = [self.cfg.line]
+      cfg = [self.cfg.getLine ()]
     else:
       cfg = []
 
@@ -153,8 +153,7 @@ class MnVaultsTest (BitcoinTestFramework):
 
     self.cfg = fund_masternode (self.nodes[0], "mn", "copper", txid,
                                 "localhost:%d" % p2p_port (1))
-    # FIXME: Use reward address from node 0.
-    self.cfg.rewardAddr = addr
+    self.cfg.rewardAddr = self.nodes[0].getnewaddress ("reward")
 
     for i in [0, 2]:
       self.stop_node (i)
@@ -242,7 +241,9 @@ class MnVaultsTest (BitcoinTestFramework):
         break
     assert_equal (found, True)
 
-    # FIXME: Check in wallet when we have a custom reward address.
+    # The payments should have been received at the reward address
+    # and in particular not be lost in the "destroyed" vault.
+    assert_greater_than (self.nodes[0].getbalance ("reward"), 0)
 
   def unvault (self):
     print ("Unvaulting the funds...")
