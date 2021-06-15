@@ -179,9 +179,9 @@ class WalletUtxoHasher : public TransactionUtxoHasher
 
 public:
 
-  uint256 GetUtxoHash(const CTransaction& tx) const override
+  OutputHash GetUtxoHash(const CTransaction& tx) const override
   {
-    return tx.GetHash();
+    return OutputHash(tx.GetHash());
   }
 
 };
@@ -356,7 +356,7 @@ CAmount CWallet::ComputeCredit(const CWalletTx& tx, const isminefilter& filter, 
 {
     const CAmount maxMoneyAllowedInOutput = Params().MaxMoneyOut();
     CAmount nCredit = 0;
-    const uint256 hash = GetUtxoHash(tx);
+    const auto hash = GetUtxoHash(tx);
     for (unsigned int i = 0; i < tx.vout.size(); i++) {
         if( (creditFilterFlags & REQUIRE_UNSPENT) && IsSpent(tx,i)) continue;
         if( (creditFilterFlags & REQUIRE_UNLOCKED) && IsLockedCoin(hash,i)) continue;
@@ -443,6 +443,12 @@ const CWalletTx* CWallet::GetWalletTx(const uint256& hash) const
     LOCK(cs_wallet);
     return transactionRecord_->GetWalletTx(hash);
 }
+
+const CWalletTx* CWallet::GetWalletTx(const OutputHash& hash) const
+{
+    return GetWalletTx(hash.GetValue());
+}
+
 std::vector<const CWalletTx*> CWallet::GetWalletTransactionReferences() const
 {
     LOCK(cs_wallet);
@@ -1667,7 +1673,7 @@ bool CWallet::IsAvailableForSpending(
         }
     }
 
-    const uint256 hash = GetUtxoHash(*pcoin);
+    const auto hash = GetUtxoHash(*pcoin);
 
     if (IsSpent(*pcoin, i))
         return false;
@@ -2287,7 +2293,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
 
             // Notify that old coins are spent
             {
-                std::set<uint256> updated_hashes;
+                std::set<OutputHash> updated_hashes;
                 BOOST_FOREACH (const CTxIn& txin, wtxNew.vin) {
                     // notify only once
                     if (updated_hashes.find(txin.prevout.hash) != updated_hashes.end()) continue;
@@ -2336,7 +2342,7 @@ std::pair<std::string,bool> CWallet::SendMoney(
     return {std::string(""),true};
 }
 
-uint256 CWallet::GetUtxoHash(const CMerkleTx& tx) const
+OutputHash CWallet::GetUtxoHash(const CMerkleTx& tx) const
 {
     return utxoHasher->GetUtxoHash(tx);
 }
@@ -2865,7 +2871,7 @@ void CWallet::UnlockAllCoins()
     setLockedCoins.clear();
 }
 
-bool CWallet::IsLockedCoin(const uint256& hash, unsigned int n) const
+bool CWallet::IsLockedCoin(const OutputHash& hash, unsigned int n) const
 {
     AssertLockHeld(cs_wallet); // setLockedCoins
     COutPoint outpt(hash, n);

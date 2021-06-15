@@ -6,6 +6,7 @@
 
 #include "txdb.h"
 #include "pow.h"
+#include "OutputHash.h"
 #include "uint256.h"
 #include <stdint.h>
 #include <coins.h>
@@ -44,7 +45,7 @@ extern BlockMap mapBlockIndex;
 
 CBlockIndex* InsertBlockIndex(uint256 hash);
 
-void static BatchWriteCoins(CLevelDBBatch& batch, const uint256& hash, const CCoins& coins)
+void static BatchWriteCoins(CLevelDBBatch& batch, const OutputHash& hash, const CCoins& coins)
 {
     if (coins.IsPruned())
         batch.Erase(std::make_pair(DB_COINS, hash));
@@ -61,12 +62,12 @@ CCoinsViewDB::CCoinsViewDB(size_t nCacheSize, bool fMemory, bool fWipe) : db(Get
 {
 }
 
-bool CCoinsViewDB::GetCoins(const uint256& txid, CCoins& coins) const
+bool CCoinsViewDB::GetCoins(const OutputHash& txid, CCoins& coins) const
 {
     return db.Read(std::make_pair(DB_COINS, txid), coins);
 }
 
-bool CCoinsViewDB::HaveCoins(const uint256& txid) const
+bool CCoinsViewDB::HaveCoins(const OutputHash& txid) const
 {
     return db.Exists(std::make_pair(DB_COINS, txid));
 }

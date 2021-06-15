@@ -164,7 +164,7 @@ public:
     void removeForBlock(const std::vector<CTransaction>& vtx, unsigned int nBlockHeight, std::list<CTransaction>& conflicts);
     void clear();
     void queryHashes(std::vector<uint256>& vtxid);
-    void pruneSpent(const uint256& hash, CCoins& coins);
+    void pruneSpent(const OutputHash& hash, CCoins& coins);
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
 
@@ -213,7 +213,7 @@ public:
 
     /** Looks up a transaction by its outpoint for spending, taking potential changes
      *  from the raw txid (e.g. segwit light) into account.  */
-    bool lookupOutpoint(const uint256& hash, CTransaction& result) const;
+    bool lookupOutpoint(const OutputHash& hash, CTransaction& result) const;
 
     /** Estimate fee rate needed to get into the next nBlocks */
     CFeeRate estimateFee(int nBlocks) const;
@@ -237,8 +237,8 @@ protected:
 
 public:
     CCoinsViewMemPool(CCoinsView* baseIn, CTxMemPool& mempoolIn);
-    bool GetCoins(const uint256& txid, CCoins& coins) const override;
-    bool HaveCoins(const uint256& txid) const override;
+    bool GetCoins(const OutputHash& txid, CCoins& coins) const override;
+    bool HaveCoins(const OutputHash& txid) const override;
 };
 
 #endif // BITCOIN_TXMEMPOOL_H

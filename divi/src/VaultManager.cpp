@@ -85,7 +85,7 @@ UnspentOutputs VaultManager::getUTXOs() const
     for(const auto& hashAndTransaction: walletTxRecord_->mapWallet)
     {
         const CWalletTx& tx = hashAndTransaction.second;
-        const uint256 hash = utxoHasher_.GetUtxoHash(tx);
+        const OutputHash hash(utxoHasher_.GetUtxoHash(tx));
         if(tx.GetNumberOfBlockConfirmations()<1) continue;
         if((tx.IsCoinBase() || tx.IsCoinStake()) && tx.GetBlocksToMaturity() > 0) continue;
         for(unsigned outputIndex = 0; outputIndex < tx.vout.size(); ++outputIndex)
