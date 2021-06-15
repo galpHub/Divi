@@ -13,6 +13,7 @@ using UnspentOutputs = std::set<COutPoint>;
 class CTransaction;
 class CBlock;
 class CWalletTx;
+class TransactionUtxoHasher;
 class uint256;
 
 class I_VaultManagerDatabase;
@@ -27,16 +28,19 @@ private:
     const BlockMap& blockIndicesByHash_;
     mutable CCriticalSection cs_vaultManager_;
     uint64_t transactionOrderingIndex_;
+    const TransactionUtxoHasher& utxoHasher_;
     std::unique_ptr<WalletTransactionRecord> walletTxRecord_;
     std::unique_ptr<SpentOutputTracker> outputTracker_;
     ManagedScripts managedScriptsLimits_;
 public:
     VaultManager(
         const CChain& activeChain,
-        const BlockMap& blockIndicesByHash);
+        const BlockMap& blockIndicesByHash,
+        const TransactionUtxoHasher& utxoHasher);
     VaultManager(
         const CChain& activeChain,
         const BlockMap& blockIndicesByHash,
+        const TransactionUtxoHasher& utxoHasher,
         I_VaultManagerDatabase& vaultManagerDB);
     ~VaultManager();
     void SyncTransaction(const CTransaction& tx, const CBlock *pblock);

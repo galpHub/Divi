@@ -7,6 +7,7 @@
 #include <FakeBlockIndexChain.h>
 #include <primitives/block.h>
 #include <chain.h>
+#include <MockUtxoHasher.h>
 #include <MockVaultManagerDatabase.h>
 #include <WalletTx.h>
 #include <streams.h>
@@ -20,6 +21,7 @@ struct VaultManagerTestFixture
 private:
     std::vector<CScript> managedScripts;
 public:
+    MockUtxoHasher utxoHasher;
     std::unique_ptr<MockVaultManagerDatabase> mockPtr;
     std::unique_ptr<FakeBlockIndexWithHashes> fakeBlockIndexWithHashesResource;
     RandomCScriptGenerator scriptGenerator;
@@ -32,7 +34,8 @@ public:
         , scriptGenerator()
         , manager( new VaultManager(
             *(fakeBlockIndexWithHashesResource->activeChain),
-            *(fakeBlockIndexWithHashesResource->blockIndexByHash) ))
+            *(fakeBlockIndexWithHashesResource->blockIndexByHash),
+            utxoHasher))
     {
     }
     ~VaultManagerTestFixture()
@@ -158,7 +161,7 @@ BOOST_AUTO_TEST_CASE(willDiscountSpentUTXOs)
     manager->SyncTransaction(tx,&blockMiningFirstTx);
 
     CMutableTransaction otherTx;
-    otherTx.vin.emplace_back( COutPoint(tx.GetHash(), 1u) );
+    otherTx.vin.emplace_back( COutPoint(utxoHasher.GetUtxoHash(tx), 1u) );
     otherTx.vout.push_back(CTxOut(100,managedScript));
     otherTx.vout.push_back(CTxOut(100,managedScript));
     otherTx.vout.push_back(CTxOut(100,managedScript));
@@ -211,7 +214,7 @@ BOOST_AUTO_TEST_CASE(willCheckThatCoinstakeTransactionsAreDeepEnoughToSpend)
     dummyTransaction.vout.push_back(CTxOut(100,scriptGenerator(10)));
 
     CMutableTransaction tx;
-    tx.vin.push_back(CTxIn(dummyTransaction.GetHash(),0u));
+    tx.vin.push_back(CTxIn(utxoHasher.GetUtxoHash(dummyTransaction),0u));
     CTxOut emptyFirstOutput;
     emptyFirstOutput.SetEmpty();
     tx.vout.push_back(emptyFirstOutput);
@@ -237,7 +240,7 @@ BOOST_AUTO_TEST_CASE(willLoadTransactionsFromDatabase)
     dummyTransaction.vout.push_back(CTxOut(100,scriptGenerator(10)));
 
     CMutableTransaction tx;
-    tx.vin.push_back(CTxIn(dummyTransaction.GetHash(),0u));
+    tx.vin.push_back(CTxIn(utxoHasher.GetUtxoHash(dummyTransaction),0u));
     tx.vout.push_back(CTxOut(100,managedScript));
     tx.vout.push_back(CTxOut(100,managedScript));
     tx.vout.push_back(CTxOut(100,managedScript));
@@ -277,7 +280,7 @@ BOOST_AUTO_TEST_CASE(willLoadTransactionsFromDatabase)
             return true;
         }
     ));
-    manager.reset(new VaultManager( activeChain, blockIndexByHash, *mockPtr ));
+    manager.reset(new VaultManager( activeChain, blockIndexByHash, utxoHasher, *mockPtr ));
 
     BOOST_CHECK_EQUAL(manager->getUTXOs().size(), 4u);
     BOOST_CHECK(expectedTx==manager->GetTransaction(tx.GetHash()));
@@ -297,7 +300,7 @@ BOOST_AUTO_TEST_CASE(willLoadManyTransactionsFromDatabase)
         CMutableTransaction dummyTransaction;
         dummyTransaction.vout.push_back(CTxOut(100,scriptGenerator(10)));
         CMutableTransaction tx;
-        tx.vin.push_back(CTxIn(dummyTransaction.GetHash(),0u));
+        tx.vin.push_back(CTxIn(utxoHasher.GetUtxoHash(dummyTransaction),0u));
         tx.vout.push_back(CTxOut(randomSentAmount,scriptGenerator(10)));
 
         dummyTransactions.emplace_back(tx);
@@ -323,7 +326,7 @@ BOOST_AUTO_TEST_CASE(willLoadManyTransactionsFromDatabase)
             return false;
         }
     ));
-    manager.reset(new VaultManager( activeChain, blockIndexByHash, *mockPtr ));
+    manager.reset(new VaultManager( activeChain, blockIndexByHash, utxoHasher, *mockPtr ));
 
     for(unsigned txCount =0 ; txCount < 10u; ++txCount)
     {
