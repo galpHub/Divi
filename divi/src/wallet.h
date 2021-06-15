@@ -189,6 +189,7 @@ public:
     void SetNull();
 
     const CWalletTx* GetWalletTx(const uint256& hash) const;
+    const CWalletTx* GetWalletTx(const OutputHash& hash) const;
     std::vector<const CWalletTx*> GetWalletTransactionReferences() const;
     CWalletTx initializeEmptyWalletTransaction() const;
 
@@ -218,7 +219,7 @@ public:
         CAmount& nValueRet);
 
     bool IsTrusted(const CWalletTx& walletTransaction) const;
-    bool IsLockedCoin(const uint256& hash, unsigned int n) const;
+    bool IsLockedCoin(const OutputHash& hash, unsigned int n) const;
     void LockCoin(const COutPoint& output);
     void UnlockCoin(const COutPoint& output);
     void UnlockAllCoins();
@@ -226,7 +227,7 @@ public:
 
     /** Returns the UTXO hash that should be used for spending outputs
      *  from the given transaction (which should be part of the wallet).  */
-    uint256 GetUtxoHash(const CMerkleTx& tx) const;
+    OutputHash GetUtxoHash(const CMerkleTx& tx) const;
 
     /** Replaces the UTXO hasher used in the wallet, for testing purposes.  */
     void SetUtxoHasherForTesting(std::unique_ptr<TransactionUtxoHasher> hasher);

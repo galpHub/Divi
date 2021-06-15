@@ -43,7 +43,7 @@ static bool GetVinAndKeysFromOutput(const CKeyStore& walletKeyStore, CScript pub
 
 static bool ParseInputReference(std::string strTxHash, std::string strOutputIndex, CTxIn& txinRet)
 {
-    uint256 txHash = uint256S(strTxHash);
+    const OutputHash txHash(uint256S(strTxHash));
 
     int nOutputIndex;
     try {

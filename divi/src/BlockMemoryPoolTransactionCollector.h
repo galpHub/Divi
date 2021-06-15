@@ -26,6 +26,7 @@ class CTxMemPool;
 class CBlockTemplate;
 class CBlockHeader;
 class CFeeRate;
+class OutputHash;
 class Settings;
 
 template <typename MutexObj>
@@ -51,7 +52,7 @@ class CChain;
 class BlockMemoryPoolTransactionCollector: public I_BlockTransactionCollector
 {
 private:
-    using DependingTransactionsMap = std::map<uint256, std::vector<std::shared_ptr<COrphan>>>;
+    using DependingTransactionsMap = std::map<OutputHash, std::vector<std::shared_ptr<COrphan>>>;
 
     CCoinsViewCache* baseCoinsViewCache_;
     const CChain& activeChain_;
@@ -80,7 +81,7 @@ private:
         const CTransaction* mempoolTx) const;
     void AddDependingTransactionsToPriorityQueue (
         DependingTransactionsMap& mapDependers,
-        const uint256& hash,
+        const OutputHash& hash,
         std::vector<TxPriority>& vecPriority,
         TxPriorityCompare& comparer) const;
 
