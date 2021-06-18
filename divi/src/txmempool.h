@@ -176,6 +176,10 @@ public:
     /** Returns the UTXO hasher instance used in the mempool.  */
     const TransactionUtxoHasher& GetUtxoHasher() const;
 
+    /** Replaces the UTXO hasher used in the mempool with the given instance,
+     *  which allows dependency injection for unit tests.  */
+    void SetUtxoHasherForTesting(std::unique_ptr<TransactionUtxoHasher> hasher);
+
     /** Affect CreateNewBlock prioritisation of transactions */
     void PrioritiseTransaction(const uint256 hash, const std::string strHash, double dPriorityDelta, const CAmount& nFeeDelta);
     void ApplyDeltas(const uint256 hash, double& dPriorityDelta, CAmount& nFeeDelta);
