@@ -69,9 +69,9 @@ class MnStatusTest (BitcoinTestFramework):
     and masternode config for it."""
 
     configs = [
-      [c.line for c in self.cfg],
-      [self.cfg[0].line],
-      [self.cfg[1].line],
+      [c.getLine () for c in self.cfg],
+      [self.cfg[0].getLine ()],
+      [self.cfg[1].getLine ()],
     ]
 
     args = self.base_args[:]
@@ -141,6 +141,8 @@ class MnStatusTest (BitcoinTestFramework):
       fund_masternode (self.nodes[0], "mn2", "silver", id2, "localhost:%d" % p2p_port (2)),
     ]
 
+    self.cfg[1].rewardAddr = self.nodes[0].getnewaddress ("reward2")
+
   def start_masternodes (self):
     print ("Starting masternodes...")
 
@@ -187,8 +189,9 @@ class MnStatusTest (BitcoinTestFramework):
     assert_equal (lst[1]["tier"], "SILVER")
     for i in range (2):
       assert_equal (lst[i]["status"], "ENABLED")
-      assert_equal (lst[i]["addr"],
-                    self.nodes[i + 1].getmasternodestatus ()["addr"])
+      n = self.nodes[i + 1]
+      for key in ["addr", "rewardscript"]:
+        assert_equal (lst[i][key], n.getmasternodestatus ()[key])
       assert_equal (lst[i]["txhash"], self.cfg[i].txid)
       assert_equal (lst[i]["outidx"], self.cfg[i].vout)
 
@@ -264,7 +267,7 @@ class MnStatusTest (BitcoinTestFramework):
     winners = self.verify_number_of_votes_exist_and_tally_winners(startHeight,endHeight, 2)
 
     addr1 = self.nodes[1].getmasternodestatus ()["addr"]
-    addr2 = self.nodes[2].getmasternodestatus ()["addr"]
+    addr2 = self.cfg[1].rewardAddr
     assert_equal (len (winners), 2)
     assert_greater_than (winners[addr1], 0)
     assert_greater_than (winners[addr2], 0)
@@ -310,8 +313,9 @@ class MnStatusTest (BitcoinTestFramework):
     self.start_node (0)
     sync_blocks (self.nodes)
 
-    assert_greater_than (self.nodes[0].getbalance ("alloc->mn1"), 0)
-    assert_greater_than (self.nodes[0].getbalance ("alloc->mn2"), 0)
+    assert_greater_than (self.nodes[0].getbalance ("alloc->mn1"), 100)
+    assert_equal (self.nodes[0].getbalance ("alloc->mn2"), 300)
+    assert_greater_than (self.nodes[0].getbalance ("reward2"), 0)
 
 
 if __name__ == '__main__':

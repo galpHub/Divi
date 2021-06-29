@@ -25,7 +25,7 @@ public:
 
     void AddDummyConfiguration(CTxIn txIn, CService service)
     {
-        configurations_->add("dummy configuration", service.ToString(), "", txIn.prevout.hash.ToString(), std::to_string(txIn.prevout.n));
+        configurations_->add("dummy configuration", service.ToString(), "", txIn.prevout.hash.ToString(), std::to_string(txIn.prevout.n), "");
     }
 };
 

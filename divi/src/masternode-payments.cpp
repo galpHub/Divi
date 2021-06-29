@@ -16,6 +16,7 @@
 #include "sync.h"
 #include "Logging.h"
 #include "utilmoneystr.h"
+#include "utilstrencodings.h"
 #include "netfulfilledman.h"
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -365,9 +366,7 @@ bool CMasternodePayments::CheckMasternodeWinnerValidity(const CMasternodePayment
     /* Make sure that the payee is in our own payment queue near the top.  */
     const std::vector<CMasternode*> mnQueue = GetMasternodePaymentQueue(seedHash, winner.GetHeight());
     for (int i = 0; i < std::min<int>(2 * MNPAYMENTS_SIGNATURES_TOTAL, mnQueue.size()); ++i) {
-        const auto& mn = *mnQueue[i];
-        const CScript mnPayee = GetScriptForDestination(mn.pubKeyCollateralAddress.GetID());
-        if (mnPayee == winner.payee)
+        if (winner.payee == mnQueue[i]->GetPaymentScript())
             return true;
     }
     return false;
@@ -477,21 +476,31 @@ std::string CMasternodeBlockPayees::GetRequiredPaymentsString() const
 {
     LOCK(cs_vecPayments);
 
-    std::string ret = "Unknown";
+    std::ostringstream ret;
+    bool found = false;
 
     for (const auto& payee : vecPayments) {
-        CTxDestination address1;
-        ExtractDestination(payee.scriptPubKey, address1);
-        CBitcoinAddress address2(address1);
+        std::string thisPayee;
 
-        if (ret != "Unknown") {
-            ret += ", " + address2.ToString() + ":" + boost::lexical_cast<std::string>(payee.nVotes);
+        CTxDestination address1;
+        if (ExtractDestination(payee.scriptPubKey, address1)) {
+            const CBitcoinAddress address2(address1);
+            thisPayee = address2.ToString();
         } else {
-            ret = address2.ToString() + ":" + boost::lexical_cast<std::string>(payee.nVotes);
+            thisPayee = HexStr(payee.scriptPubKey);
         }
+
+        if (found)
+            ret << ", ";
+
+        found = true;
+        ret << thisPayee << ":" << payee.nVotes;
     }
 
-    return ret;
+    if (!found)
+        return "Unknown";
+
+    return ret.str();
 }
 
 std::string CMasternodePayments::GetRequiredPaymentsString(const uint256& seedHash) const
@@ -587,7 +596,6 @@ unsigned CMasternodePayments::FindLastPayeePaymentTime(const CMasternode& master
     const CBlockIndex* chainTip = activeChain_.Tip();
     if (chainTip == NULL) return 0u;
 
-    CScript mnPayee = GetScriptForDestination(masternode.pubKeyCollateralAddress.GetID());
     unsigned n = 0;
     for (unsigned int i = 1; chainTip && chainTip->nHeight > 0; i++) {
         if (n >= maxBlockDepth) {
@@ -605,7 +613,7 @@ unsigned CMasternodePayments::FindLastPayeePaymentTime(const CMasternode& master
                 Search for this payee, with at least 2 votes. This will aid in consensus allowing the network
                 to converge on the same payees quickly, then keep the same schedule.
             */
-            if (masternodePayees->HasPayeeWithVotes(mnPayee, 2)) {
+            if (masternodePayees->HasPayeeWithVotes(masternode.GetPaymentScript(), 2)) {
                 return chainTip->nTime + masternode.DeterministicTimeOffset();
             }
         }
@@ -659,7 +667,7 @@ void ComputeMasternodesAndScores(
         // proper testing with a very small number of masternodes (which would
         // be scheduled and skipped all the time).
         if (Params().NetworkID() != CBaseChainParams::REGTEST) {
-            if (masternodePayments.IsScheduled(GetScriptForDestination(mn.pubKeyCollateralAddress.GetID()), nBlockHeight)) continue;
+            if (masternodePayments.IsScheduled(mn.GetPaymentScript(), nBlockHeight)) continue;
         }
 
         //it's too new, wait for a cycle
