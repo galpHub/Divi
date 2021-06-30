@@ -154,16 +154,16 @@ std::string CCoins::ToString() const
 }
 
 
-bool CCoinsView::GetCoins(const uint256& txid, CCoins& coins) const { return false; }
-bool CCoinsView::HaveCoins(const uint256& txid) const { return false; }
+bool CCoinsView::GetCoins(const OutputHash& txid, CCoins& coins) const { return false; }
+bool CCoinsView::HaveCoins(const OutputHash& txid) const { return false; }
 uint256 CCoinsView::GetBestBlock() const { return uint256(0); }
 bool CCoinsView::BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock) { return false; }
 bool CCoinsView::GetStats(CCoinsStats& stats) const { return false; }
 
 
 CCoinsViewBacked::CCoinsViewBacked(CCoinsView* viewIn) : base(viewIn) {}
-bool CCoinsViewBacked::GetCoins(const uint256& txid, CCoins& coins) const { return base->GetCoins(txid, coins); }
-bool CCoinsViewBacked::HaveCoins(const uint256& txid) const { return base->HaveCoins(txid); }
+bool CCoinsViewBacked::GetCoins(const OutputHash& txid, CCoins& coins) const { return base->GetCoins(txid, coins); }
+bool CCoinsViewBacked::HaveCoins(const OutputHash& txid) const { return base->HaveCoins(txid); }
 uint256 CCoinsViewBacked::GetBestBlock() const { return base->GetBestBlock(); }
 void CCoinsViewBacked::SetBackend(CCoinsView& viewIn) { base = &viewIn; }
 bool CCoinsViewBacked::BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock) { return base->BatchWrite(mapCoins, hashBlock); }
@@ -178,7 +178,7 @@ CCoinsViewCache::~CCoinsViewCache()
     assert(!hasModifier);
 }
 
-CCoinsMap::const_iterator CCoinsViewCache::FetchCoins(const uint256& txid) const
+CCoinsMap::const_iterator CCoinsViewCache::FetchCoins(const OutputHash& txid) const
 {
     CCoinsMap::iterator it = cacheCoins.find(txid);
     if (it != cacheCoins.end())
@@ -196,7 +196,7 @@ CCoinsMap::const_iterator CCoinsViewCache::FetchCoins(const uint256& txid) const
     return ret;
 }
 
-bool CCoinsViewCache::GetCoins(const uint256& txid, CCoins& coins) const
+bool CCoinsViewCache::GetCoins(const OutputHash& txid, CCoins& coins) const
 {
     CCoinsMap::const_iterator it = FetchCoins(txid);
     if (it != cacheCoins.end()) {
@@ -206,7 +206,7 @@ bool CCoinsViewCache::GetCoins(const uint256& txid, CCoins& coins) const
     return false;
 }
 
-CCoinsModifier CCoinsViewCache::ModifyCoins(const uint256& txid)
+CCoinsModifier CCoinsViewCache::ModifyCoins(const OutputHash& txid)
 {
     assert(!hasModifier);
     std::pair<CCoinsMap::iterator, bool> ret = cacheCoins.insert(std::make_pair(txid, CCoinsCacheEntry()));
@@ -225,7 +225,7 @@ CCoinsModifier CCoinsViewCache::ModifyCoins(const uint256& txid)
     return CCoinsModifier(*this, ret.first);
 }
 
-const CCoins* CCoinsViewCache::AccessCoins(const uint256& txid) const
+const CCoins* CCoinsViewCache::AccessCoins(const OutputHash& txid) const
 {
     CCoinsMap::const_iterator it = FetchCoins(txid);
     if (it == cacheCoins.end()) {
@@ -235,7 +235,7 @@ const CCoins* CCoinsViewCache::AccessCoins(const uint256& txid) const
     }
 }
 
-bool CCoinsViewCache::HaveCoins(const uint256& txid) const
+bool CCoinsViewCache::HaveCoins(const OutputHash& txid) const
 {
     CCoinsMap::const_iterator it = FetchCoins(txid);
     // We're using vtx.empty() instead of IsPruned here for performance reasons,

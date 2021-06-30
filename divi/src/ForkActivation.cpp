@@ -6,7 +6,9 @@
 
 #include "chain.h"
 #include "primitives/block.h"
+#include "timedata.h"
 
+#include <cmath>
 #include <unordered_map>
 
 #include <Settings.h>
@@ -25,12 +27,15 @@ const std::unordered_map<Fork, int64_t,std::hash<int>> ACTIVATION_TIMES = {
   {Fork::TestByTimestamp, 1000000000},
   {Fork::HardenedStakeModifier, unixTimestampForDec31stMidnight},
   {Fork::UniformLotteryWinners, unixTimestampForDec31stMidnight},
+  /* FIXME: Set real activation time for segwit light.  It is after
+     staking vaults.  */
+  {Fork::SegwitLight, 2000000000},
 };
 
 } // anonymous namespace
 
 ActivationState::ActivationState(const CBlockIndex* pi)
-  : nTime(pi->nTime)
+  : nTime(pi == nullptr ? 0 : pi->nTime)
 {}
 
 ActivationState::ActivationState(const CBlockHeader& block)
@@ -48,4 +53,11 @@ bool ActivationState::IsActive(const Fork f) const
   const auto mit = ACTIVATION_TIMES.find(f);
   assert(mit != ACTIVATION_TIMES.end());
   return nTime >= mit->second;
+}
+
+bool ActivationState::CloseToSegwitLight(const int maxSeconds)
+{
+  const int64_t now = GetAdjustedTime();
+  const int64_t activation = ACTIVATION_TIMES.at(Fork::SegwitLight);
+  return std::abs(now - activation) <= maxSeconds;
 }

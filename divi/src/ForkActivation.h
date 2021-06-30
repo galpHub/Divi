@@ -18,10 +18,18 @@ class CBlockIndex;
  */
 enum Fork
 {
-  /* Test forks not actually deployed / active but used for unit tests.  */
-  TestByTimestamp,
   HardenedStakeModifier,
   UniformLotteryWinners,
+
+  /**
+   * Start of "segwit light":  The UTXOs created by transactions from after
+   * the fork will be indexed by a "bare txid", which does not include
+   * any signature data.  This fixes transaction malleability.
+   */
+  SegwitLight,
+
+  /* Test forks not actually deployed / active but used for unit tests.  */
+  TestByTimestamp,
 };
 
 /**
@@ -53,6 +61,15 @@ public:
    * for processing the associated block.
    */
   bool IsActive(Fork f) const;
+
+  /**
+   * Returns true if the current time is "close" to the activation of
+   * segwit-light (before or after), with close being within the given
+   * number of seconds.  This is used for a temporary measure to disallow
+   * (by mempool and wallet policy) spending of unconfirmed change
+   * around the fork.
+   */
+  static bool CloseToSegwitLight(int maxSeconds);
 
 };
 

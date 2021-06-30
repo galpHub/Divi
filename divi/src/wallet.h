@@ -27,6 +27,8 @@
 #include <OutputEntry.h>
 #include <Output.h>
 
+#include <memory>
+
 class I_SignatureSizeEstimator;
 class I_CoinSelectionAlgorithm;
 class CKeyMetadata;
@@ -38,6 +40,7 @@ class CBlockIndex;
 struct StakableCoin;
 class WalletTransactionRecord;
 class SpentOutputTracker;
+class TransactionUtxoHasher;
 class BlockMap;
 class CAccountingEntry;
 class CChain;
@@ -121,6 +124,7 @@ public:
 private:
     std::unique_ptr<WalletTransactionRecord> transactionRecord_;
     std::unique_ptr<SpentOutputTracker> outputTracker_;
+    std::unique_ptr<TransactionUtxoHasher> utxoHasher;
     const CChain& chainActive_;
     const BlockMap& mapBlockIndex_;
     int64_t orderedTransactionIndex;
@@ -162,6 +166,11 @@ public:
 private:
     void DeriveNewChildKey(const CKeyMetadata& metadata, CKey& secretRet, uint32_t nAccountIndex, bool fInternal /*= false*/);
 
+    /** Returns true if the wallet should allow spending of unconfirmed change.
+     *  This is mostly determined by allowSpendingZeroConfirmationOutputs,
+     *  but is forced to off around the segwit-light fork.  */
+    bool AllowSpendingZeroConfirmationChange() const;
+
 public:
     bool MoveFundsBetweenAccounts(std::string from, std::string to, CAmount amount, std::string comment);
 
@@ -185,6 +194,7 @@ public:
     void SetNull();
 
     const CWalletTx* GetWalletTx(const uint256& hash) const;
+    const CWalletTx* GetWalletTx(const OutputHash& hash) const;
     std::vector<const CWalletTx*> GetWalletTransactionReferences() const;
     CWalletTx initializeEmptyWalletTransaction() const;
 
@@ -214,11 +224,18 @@ public:
         CAmount& nValueRet);
 
     bool IsTrusted(const CWalletTx& walletTransaction) const;
-    bool IsLockedCoin(const uint256& hash, unsigned int n) const;
+    bool IsLockedCoin(const OutputHash& hash, unsigned int n) const;
     void LockCoin(const COutPoint& output);
     void UnlockCoin(const COutPoint& output);
     void UnlockAllCoins();
     void ListLockedCoins(CoinVector& vOutpts);
+
+    /** Returns the UTXO hash that should be used for spending outputs
+     *  from the given transaction (which should be part of the wallet).  */
+    OutputHash GetUtxoHash(const CMerkleTx& tx) const;
+
+    /** Replaces the UTXO hasher used in the wallet, for testing purposes.  */
+    void SetUtxoHasherForTesting(std::unique_ptr<TransactionUtxoHasher> hasher);
 
     //  keystore implementation
     // Generate a new key

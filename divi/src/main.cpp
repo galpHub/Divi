@@ -21,6 +21,7 @@
 #include "coins.h"
 #include <defaultValues.h>
 #include "FeeRate.h"
+#include "ForkActivation.h"
 #include "init.h"
 #include "kernel.h"
 #include "libzerocoin/bignum.h"
@@ -112,6 +113,14 @@ bool fSpentIndex = false;
 bool fCheckBlockIndex = false;
 bool fVerifyingBlocks = false;
 unsigned int nCoinCacheSize = 5000;
+
+/** Number of seconds around the "segwit light" fork for which we disallow
+ *  spending unconfirmed outputs (to avoid messing up with the change
+ *  itself).  This should be smaller than the matching constant for the
+ *  wallet (so the wallet does not construct things the mempool won't
+ *  accept in the end).  */
+constexpr int SEGWIT_LIGHT_FORBID_SPENDING_ZERO_CONF_SECONDS = 14400;
+
 bool IsFinalTx(const CTransaction& tx, const CChain& activeChain, int nBlockHeight = 0 , int64_t nBlockTime = 0);
 
 CCheckpointServices checkpointsVerifier(GetCurrentChainCheckpoints);
@@ -587,13 +596,13 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
             view.SetBackend(viewMemPool);
 
             // do we already have it?
-            if (view.HaveCoins(hash))
+            if (view.HaveCoins(pool.GetUtxoHasher().GetUtxoHash(tx)))
                 return false;
 
             // do all inputs exist?
             // Note that this does not check for the presence of actual outputs (see the next check for that),
             // only helps filling in pfMissingInputs (to determine missing vs spent).
-            for (const CTxIn txin : tx.vin) {
+            for (const auto& txin : tx.vin) {
                 if (!view.HaveCoins(txin.prevout.hash)) {
                     if (pfMissingInputs)
                         *pfMissingInputs = true;
@@ -605,6 +614,21 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
             if (!view.HaveInputs(tx))
                 return state.Invalid(error("%s : inputs already spent",__func__),
                                      REJECT_DUPLICATE, "bad-txns-inputs-spent");
+
+            // If we are close to the segwit-light activation (before or after),
+            // do not allow spending of zero-confirmation outputs.  This would
+            // mess up with the fork, as it is not clear whether the fork will be
+            // active or not when they get confirmed (and thus it is not possible
+            // to reliably construct a chain of transactions).
+            if (ActivationState::CloseToSegwitLight(SEGWIT_LIGHT_FORBID_SPENDING_ZERO_CONF_SECONDS)) {
+                for (const auto& txin : tx.vin) {
+                    const auto* coins = view.AccessCoins(txin.prevout.hash);
+                    assert(coins != nullptr && coins->IsAvailable(txin.prevout.n));
+                    if (coins->nHeight == MEMPOOL_HEIGHT)
+                        return state.DoS(0, error("%s : spending zero-confirmation output around segwit light", __func__),
+                                         REJECT_NONSTANDARD, "zero-conf-segwit-light");
+                }
+            }
 
             // Bring the best block into scope
             view.GetBestBlock();
@@ -942,7 +966,7 @@ void VerifyBestBlockIsAtPreviousBlock(const CBlockIndex* pindex, CCoinsViewCache
     assert(hashPrevBlock == view.GetBestBlock());
 }
 
-bool CheckEnforcedPoSBlocksAndBIP30(const CChainParams& chainParameters, const CBlock& block, CValidationState& state, const CBlockIndex* pindex, const CCoinsViewCache& view)
+bool CheckEnforcedPoSBlocksAndBIP30(const CChainParams& chainParameters, const TransactionUtxoHasher& utxoHasher, const CBlock& block, CValidationState& state, const CBlockIndex* pindex, const CCoinsViewCache& view)
 {
     if (pindex->nHeight <= chainParameters.LAST_POW_BLOCK() && block.IsProofOfStake())
         return state.DoS(100, error("%s : PoS period not active",__func__),
@@ -954,7 +978,7 @@ bool CheckEnforcedPoSBlocksAndBIP30(const CChainParams& chainParameters, const C
 
     // Enforce BIP30.
     for (const auto& tx : block.vtx) {
-        const CCoins* coins = view.AccessCoins(tx.GetHash());
+        const CCoins* coins = view.AccessCoins(utxoHasher.GetUtxoHash(tx));
         if (coins && !coins->IsPruned())
             return state.DoS(100, error("%s : tried to overwrite transaction",__func__),
                              REJECT_INVALID, "bad-txns-BIP30");
@@ -1074,6 +1098,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     LogWalletBalance();
     static const CChainParams& chainParameters = Params();
 
+    const ActivationState as(block);
+    const BlockUtxoHasher utxoHasher(as);
+
     VerifyBestBlockIsAtPreviousBlock(pindex,view);
     if (block.GetHash() == Params().HashGenesisBlock())
     {
@@ -1081,7 +1108,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             view.SetBestBlock(pindex->GetBlockHash());
         return true;
     }
-    if(!CheckEnforcedPoSBlocksAndBIP30(chainParameters,block,state,pindex,view))
+    if(!CheckEnforcedPoSBlocksAndBIP30(chainParameters,utxoHasher,block,state,pindex,view))
     {
         return false;
     }
@@ -1097,7 +1124,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     const int blocksToSkipChecksFor = checkpointsVerifier.GetTotalBlocksEstimate();
     IndexDatabaseUpdates indexDatabaseUpdates;
     CBlockRewards nExpectedMint = subsidiesContainer.blockSubsidiesProvider().GetBlockSubsidity(pindex->nHeight);
-    BlockTransactionChecker blockTxChecker(block,state,pindex,view,mapBlockIndex,blocksToSkipChecksFor);
+    BlockTransactionChecker blockTxChecker(block, utxoHasher, state, pindex, view, mapBlockIndex, blocksToSkipChecksFor);
 
     if(!blockTxChecker.Check(nExpectedMint,fJustCheck,indexDatabaseUpdates))
     {
@@ -2344,6 +2371,8 @@ bool static LoadBlockIndexDB(string& strError)
                     strError = "The wallet has been not been closed gracefully and has caused corruption of blocks stored to disk. Data directory is in an unusable state";
                     return false;
                 }
+                const ActivationState as(block);
+                const BlockUtxoHasher utxoHasher(as);
 
                 std::vector<CTxUndo> vtxundo;
                 vtxundo.reserve(block.vtx.size() - 1);
@@ -2353,7 +2382,7 @@ bool static LoadBlockIndexDB(string& strError)
                     CTxUndo undoDummy;
                     if (i > 0)
                         vtxundo.push_back(CTxUndo());
-                    UpdateCoinsWithTransaction(block.vtx[i], view, i == 0 ? undoDummy : vtxundo.back(), pindex->nHeight);
+                    UpdateCoinsWithTransaction(block.vtx[i], view, i == 0 ? undoDummy : vtxundo.back(), utxoHasher, pindex->nHeight);
                     view.SetBestBlock(hashBlock);
                 }
 
@@ -3277,7 +3306,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
 
     else if (strCommand == "tx" || strCommand == "dstx") {
-        std::vector<uint256> vWorkQueue;
+        std::vector<OutputHash> vWorkQueue;
         std::vector<uint256> vEraseQueue;
         CTransaction tx;
 
@@ -3304,7 +3333,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         {
             mempool.check(pcoinsTip, mapBlockIndex);
             RelayTransaction(tx);
-            vWorkQueue.push_back(inv.hash);
+            vWorkQueue.push_back(mempool.GetUtxoHasher().GetUtxoHash(tx));
 
             LogPrint("mempool", "%s: peer=%d %s : accepted %s (poolsz %u)\n",
                     __func__,
@@ -3333,7 +3362,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     if(AcceptToMemoryPool(mempool, stateDummy, orphanTx, true, &fMissingInputs2)) {
                         LogPrint("mempool", "   accepted orphan tx %s\n", orphanHash);
                         RelayTransaction(orphanTx);
-                        vWorkQueue.push_back(orphanHash);
+                        vWorkQueue.push_back(mempool.GetUtxoHasher().GetUtxoHash(orphanTx));
                         vEraseQueue.push_back(orphanHash);
                     } else if(!fMissingInputs2) {
                         int nDos = 0;
