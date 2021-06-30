@@ -11,6 +11,7 @@
 #include <defaultValues.h>
 #include <Logging.h>
 #include <TransactionOpCounting.h>
+#include <OutputHash.h>
 #include <UtxoCheckingAndUpdating.h>
 
 #include <Settings.h>
@@ -53,7 +54,7 @@ class COrphan
 {
 public:
     const CTransaction* ptx;
-    std::set<uint256> setDependsOn;
+    std::set<OutputHash> setDependsOn;
     CFeeRate feeRate;
     double dPriority;
 
@@ -141,7 +142,7 @@ void BlockMemoryPoolTransactionCollector::ComputeTransactionPriority (
 
 void BlockMemoryPoolTransactionCollector::AddDependingTransactionsToPriorityQueue (
     DependingTransactionsMap& dependentTransactions,
-    const uint256& hash,
+    const OutputHash& hash,
     std::vector<TxPriority>& vecPriority,
     TxPriorityCompare& comparer) const
 {
@@ -337,10 +338,10 @@ std::vector<PrioritizedTransactionData> BlockMemoryPoolTransactionCollector::Pri
         nBlockSigOps += nTxSigOps;
 
         CTxUndo txundo;
-        UpdateCoinsWithTransaction(tx, view, txundo, nHeight);
+        UpdateCoinsWithTransaction(tx, view, txundo, mempool_.GetUtxoHasher(), nHeight);
 
         // Add transactions that depend on this one to the priority queue
-        AddDependingTransactionsToPriorityQueue(dependentTransactions, hash, vecPriority, comparer);
+        AddDependingTransactionsToPriorityQueue(dependentTransactions, mempool_.GetUtxoHasher().GetUtxoHash(tx), vecPriority, comparer);
     }
 
     LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);

@@ -4,13 +4,16 @@
 #include <WalletTx.h>
 #include <WalletTransactionRecord.h>
 #include <SpentOutputTracker.h>
+#include <UtxoCheckingAndUpdating.h>
 #include <I_VaultManagerDatabase.h>
 
 VaultManager::VaultManager(
     const CChain& activeChain,
-    const BlockMap& blockIndicesByHash
+    const BlockMap& blockIndicesByHash,
+    const TransactionUtxoHasher& utxoHasher
     ): activeChain_(activeChain)
     , blockIndicesByHash_(blockIndicesByHash)
+    , utxoHasher_(utxoHasher)
     , cs_vaultManager_()
     , transactionOrderingIndex_(0)
     , walletTxRecord_(new WalletTransactionRecord(cs_vaultManager_))
@@ -23,8 +26,9 @@ VaultManager::VaultManager(
 VaultManager::VaultManager(
     const CChain& activeChain,
     const BlockMap& blockIndicesByHash,
+    const TransactionUtxoHasher& utxoHasher,
     I_VaultManagerDatabase& vaultManagerDB
-    ): VaultManager(activeChain,blockIndicesByHash)
+    ): VaultManager(activeChain,blockIndicesByHash,utxoHasher)
 {
     LOCK(cs_vaultManager_);
     vaultManagerDB.ReadManagedScripts(managedScriptsLimits_);
@@ -80,8 +84,8 @@ UnspentOutputs VaultManager::getUTXOs() const
     auto managedScriptsLimitsCopy = managedScriptsLimits_;
     for(const auto& hashAndTransaction: walletTxRecord_->mapWallet)
     {
-        uint256 hash = hashAndTransaction.first;
         const CWalletTx& tx = hashAndTransaction.second;
+        const OutputHash hash(utxoHasher_.GetUtxoHash(tx));
         if(tx.GetNumberOfBlockConfirmations()<1) continue;
         if((tx.IsCoinBase() || tx.IsCoinStake()) && tx.GetBlocksToMaturity() > 0) continue;
         for(unsigned outputIndex = 0; outputIndex < tx.vout.size(); ++outputIndex)

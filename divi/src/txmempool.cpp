@@ -360,6 +360,23 @@ public:
     }
 };
 
+namespace
+{
+
+/** The UTXO hasher used in mempool logic.  */
+class MempoolUtxoHasher : public TransactionUtxoHasher
+{
+
+public:
+
+  OutputHash GetUtxoHash(const CTransaction& tx) const override
+  {
+      return OutputHash(tx.GetHash());
+  }
+
+};
+
+} // anonymous namespace
 
 CTxMemPool::CTxMemPool(const CFeeRate& _minRelayFee,
                        const bool& addressIndex, const bool& spentIndex)
@@ -378,6 +395,8 @@ CTxMemPool::CTxMemPool(const CFeeRate& _minRelayFee,
     // Confirmation times for very-low-fee transactions that take more
     // than an hour or three to confirm are highly variable.
     minerPolicyEstimator = new CMinerPolicyEstimator(25);
+
+    utxoHasher.reset(new MempoolUtxoHasher());
 }
 
 CTxMemPool::~CTxMemPool()
@@ -385,7 +404,7 @@ CTxMemPool::~CTxMemPool()
     delete minerPolicyEstimator;
 }
 
-void CTxMemPool::pruneSpent(const uint256& hashTx, CCoins& coins)
+void CTxMemPool::pruneSpent(const OutputHash& hashTx, CCoins& coins)
 {
     LOCK(cs);
 
@@ -439,6 +458,16 @@ bool CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry& entry,
     }
 
     return true;
+}
+
+const TransactionUtxoHasher& CTxMemPool::GetUtxoHasher() const
+{
+    return *utxoHasher;
+}
+
+void CTxMemPool::SetUtxoHasherForTesting(std::unique_ptr<TransactionUtxoHasher> hasher)
+{
+    utxoHasher = std::move(hasher);
 }
 
 void CTxMemPool::addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewCache &view)
@@ -593,7 +622,7 @@ void CTxMemPool::remove(const CTransaction& origTx, std::list<CTransaction>& rem
             // happen during chain re-orgs if origTx isn't re-accepted into
             // the mempool for any reason.
             for (unsigned int i = 0; i < origTx.vout.size(); i++) {
-                std::map<COutPoint, CInPoint>::iterator it = mapNextTx.find(COutPoint(origTx.GetHash(), i));
+                auto it = mapNextTx.find(COutPoint(utxoHasher->GetUtxoHash(origTx), i));
                 if (it == mapNextTx.end())
                     continue;
                 txToRemove.push_back(it->second.ptx->GetHash());
@@ -611,7 +640,7 @@ void CTxMemPool::remove(const CTransaction& origTx, std::list<CTransaction>& rem
             const CTransaction& tx = mapTx[hash].GetTx();
             if (fRecursive) {
                 for (unsigned int i = 0; i < tx.vout.size(); i++) {
-                    std::map<COutPoint, CInPoint>::iterator it = mapNextTx.find(COutPoint(hash, i));
+                    auto it = mapNextTx.find(COutPoint(utxoHasher->GetUtxoHash(tx), i));
                     if (it == mapNextTx.end())
                         continue;
                     txToRemove.push_back(it->second.ptx->GetHash());
@@ -743,7 +772,7 @@ void CTxMemPool::check(const CCoinsViewCache* pcoins, const BlockMap& blockIndex
             CValidationState state;
             CTxUndo undo;
             assert(CheckInputs(tx, state, mempoolDuplicate, blockIndexMap, false, 0, false, NULL));
-            UpdateCoinsWithTransaction(tx, mempoolDuplicate, undo, 1000000);
+            UpdateCoinsWithTransaction(tx, mempoolDuplicate, undo, *utxoHasher, 1000000);
         }
     }
     unsigned int stepsSinceLastRemove = 0;
@@ -758,7 +787,7 @@ void CTxMemPool::check(const CCoinsViewCache* pcoins, const BlockMap& blockIndex
         } else {
             assert(CheckInputs(entry->GetTx(), state, mempoolDuplicate, blockIndexMap, false, 0, false, NULL));
             CTxUndo undo;
-            UpdateCoinsWithTransaction(entry->GetTx(), mempoolDuplicate, undo, 1000000);
+            UpdateCoinsWithTransaction(entry->GetTx(), mempoolDuplicate, undo, *utxoHasher, 1000000);
             stepsSinceLastRemove = 0;
         }
     }
@@ -803,11 +832,18 @@ bool CTxMemPool::lookupBareTxid(const uint256& btxid, CTransaction& result) cons
     return true;
 }
 
-bool CTxMemPool::lookupOutpoint(const uint256& hash, CTransaction& result) const
+bool CTxMemPool::lookupOutpoint(const OutputHash& hash, CTransaction& result) const
 {
-    /* For now (until we add the UTXO hasher and segwit light), the outpoint
-       is just the transaction ID.  */
-    return lookup(hash, result);
+    /* The TransactionUtxoHasher can only tell us the txid to use once we
+       know the transaction already.  Thus we check both txid and bare txid
+       in our index; if one of them matches, we then cross-check with the
+       then-known transaction that it actually should hash to that UTXO.  */
+    if (lookup(hash.GetValue(), result) && utxoHasher->GetUtxoHash(result) == hash)
+        return true;
+    if (lookupBareTxid(hash.GetValue(), result) && utxoHasher->GetUtxoHash(result) == hash)
+        return true;
+
+    return false;
 }
 
 CFeeRate CTxMemPool::estimateFee(int nBlocks) const
@@ -883,7 +919,7 @@ void CTxMemPool::ClearPrioritisation(const uint256 hash)
 
 CCoinsViewMemPool::CCoinsViewMemPool(CCoinsView* baseIn, CTxMemPool& mempoolIn) : CCoinsViewBacked(baseIn), mempool(mempoolIn) {}
 
-bool CCoinsViewMemPool::GetCoins(const uint256& txid, CCoins& coins) const
+bool CCoinsViewMemPool::GetCoins(const OutputHash& txid, CCoins& coins) const
 {
     // If an entry in the mempool exists, always return that one, as it's guaranteed to never
     // conflict with the underlying cache, and it cannot have pruned entries (as it contains full)
@@ -896,7 +932,7 @@ bool CCoinsViewMemPool::GetCoins(const uint256& txid, CCoins& coins) const
     return (base->GetCoins(txid, coins) && !coins.IsPruned());
 }
 
-bool CCoinsViewMemPool::HaveCoins(const uint256& txid) const
+bool CCoinsViewMemPool::HaveCoins(const OutputHash& txid) const
 {
     CTransaction dummy;
     if (mempool.lookupOutpoint(txid, dummy))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 The DIVI developers
+# Copyright (c) 2020-2021 The DIVI developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,11 +26,12 @@ import time
 class MnVaultsTest (BitcoinTestFramework):
 
   def __init__ (self):
-    super (MnVaultsTest, self).__init__ ()
+    super ().__init__ ()
     self.base_args = ["-debug=masternode", "-debug=mocktime"]
     self.cfg = None
 
   def setup_chain (self):
+    print("Initializing test directory " + self.options.tmpdir)
     for i in range (7):
       initialize_datadir (self.options.tmpdir, i)
 
@@ -127,6 +128,7 @@ class MnVaultsTest (BitcoinTestFramework):
     amount = 100
     txid = self.nodes[0].sendtoaddress (addr, amount)
     raw = self.nodes[0].getrawtransaction (txid, 1)
+    outputId = raw["txid"]
     vout = None
     for i in range (len (raw["vout"])):
       o = raw["vout"][i]
@@ -139,19 +141,19 @@ class MnVaultsTest (BitcoinTestFramework):
     data = self.nodes[0].validateaddress (unvaultAddr)
 
     tx = CTransaction ()
-    tx.vin.append (CTxIn (COutPoint (txid=txid, n=vout)))
+    tx.vin.append (CTxIn (COutPoint (txid=outputId, n=vout)))
     tx.vout.append (CTxOut (amount * COIN, unhexlify (data["scriptPubKey"])))
     unsigned = ToHex (tx)
 
     validated = self.nodes[0].validateaddress (addr)
     script = validated["scriptPubKey"]
-    prevtx = [{"txid": txid, "vout": vout, "scriptPubKey": script}]
+    prevtx = [{"txid": outputId, "vout": vout, "scriptPubKey": script}]
     signed = self.nodes[0].signrawtransaction (unsigned, prevtx, [privkey],
                                                "SINGLE|ANYONECANPAY")
     assert_equal (signed["complete"], True)
     self.unvaultTx = signed["hex"]
 
-    self.cfg = fund_masternode (self.nodes[0], "mn", "copper", txid,
+    self.cfg = fund_masternode (self.nodes[0], "mn", "copper", outputId,
                                 "localhost:%d" % p2p_port (1))
     # FIXME: Use reward address from node 0.
     self.cfg.rewardAddr = addr
@@ -260,7 +262,7 @@ class MnVaultsTest (BitcoinTestFramework):
     data = self.nodes[0].validateaddress (changeAddr)
 
     tx = FromHex (CTransaction (), self.unvaultTx)
-    tx.vin.append (CTxIn (COutPoint (txid=inp["txid"], n=inp["vout"])))
+    tx.vin.append (CTxIn (COutPoint (txid=inp["outputhash"], n=inp["vout"])))
     tx.vout.append (CTxOut (change, unhexlify (data["scriptPubKey"])))
     partial = ToHex (tx)
 

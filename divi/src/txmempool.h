@@ -8,6 +8,7 @@
 #define BITCOIN_TXMEMPOOL_H
 
 #include <list>
+#include <memory>
 
 #include "addressindex.h"
 #include "spentindex.h"
@@ -19,6 +20,7 @@
 
 class BlockMap;
 class CAutoFile;
+class TransactionUtxoHasher;
 
 inline double AllowFreeThreshold()
 {
@@ -102,6 +104,7 @@ private:
     bool fSanityCheck; //! Normally false, true if -checkmempool or -regtest
     unsigned int nTransactionsUpdated;
     CMinerPolicyEstimator* minerPolicyEstimator;
+    std::unique_ptr<TransactionUtxoHasher> utxoHasher;
 
     CFeeRate minRelayFee; //! Passed to constructor to avoid dependency on main
     uint64_t totalTxSize; //! sum of all mempool tx' byte sizes
@@ -161,7 +164,7 @@ public:
     void removeForBlock(const std::vector<CTransaction>& vtx, unsigned int nBlockHeight, std::list<CTransaction>& conflicts);
     void clear();
     void queryHashes(std::vector<uint256>& vtxid);
-    void pruneSpent(const uint256& hash, CCoins& coins);
+    void pruneSpent(const OutputHash& hash, CCoins& coins);
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
 
@@ -169,6 +172,13 @@ public:
                          std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > &results);
 
     bool getSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value);
+
+    /** Returns the UTXO hasher instance used in the mempool.  */
+    const TransactionUtxoHasher& GetUtxoHasher() const;
+
+    /** Replaces the UTXO hasher used in the mempool with the given instance,
+     *  which allows dependency injection for unit tests.  */
+    void SetUtxoHasherForTesting(std::unique_ptr<TransactionUtxoHasher> hasher);
 
     /** Affect CreateNewBlock prioritisation of transactions */
     void PrioritiseTransaction(const uint256 hash, const std::string strHash, double dPriorityDelta, const CAmount& nFeeDelta);
@@ -203,7 +213,7 @@ public:
 
     /** Looks up a transaction by its outpoint for spending, taking potential changes
      *  from the raw txid (e.g. segwit light) into account.  */
-    bool lookupOutpoint(const uint256& hash, CTransaction& result) const;
+    bool lookupOutpoint(const OutputHash& hash, CTransaction& result) const;
 
     /** Estimate fee rate needed to get into the next nBlocks */
     CFeeRate estimateFee(int nBlocks) const;
@@ -227,8 +237,8 @@ protected:
 
 public:
     CCoinsViewMemPool(CCoinsView* baseIn, CTxMemPool& mempoolIn);
-    bool GetCoins(const uint256& txid, CCoins& coins) const override;
-    bool HaveCoins(const uint256& txid) const override;
+    bool GetCoins(const OutputHash& txid, CCoins& coins) const override;
+    bool HaveCoins(const OutputHash& txid) const override;
 };
 
 #endif // BITCOIN_TXMEMPOOL_H

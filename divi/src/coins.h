@@ -7,6 +7,7 @@
 #define BITCOIN_COINS_H
 
 #include "compressor.h"
+#include "OutputHash.h"
 #include "script/standard.h"
 #include "serialize.h"
 #include "uint256.h"
@@ -244,9 +245,9 @@ public:
      * unordered_map will behave unpredictably if the custom hasher returns a
      * uint64_t, resulting in failures when syncing the chain (#4634).
      */
-    size_t operator()(const uint256& key) const
+    size_t operator()(const OutputHash& key) const
     {
-        return key.GetHash(salt);
+        return key.GetValue().GetHash(salt);
     }
 };
 
@@ -262,7 +263,7 @@ struct CCoinsCacheEntry {
     CCoinsCacheEntry() : coins(), flags(0) {}
 };
 
-typedef boost::unordered_map<uint256, CCoinsCacheEntry, CCoinsKeyHasher> CCoinsMap;
+typedef boost::unordered_map<OutputHash, CCoinsCacheEntry, CCoinsKeyHasher> CCoinsMap;
 
 struct CCoinsStats {
     int nHeight;
@@ -282,11 +283,11 @@ class CCoinsView
 {
 public:
     //! Retrieve the CCoins (unspent transaction outputs) for a given txid
-    virtual bool GetCoins(const uint256& txid, CCoins& coins) const;
+    virtual bool GetCoins(const OutputHash& txid, CCoins& coins) const;
 
     //! Just check whether we have data for a given txid.
     //! This may (but cannot always) return true for fully spent transactions
-    virtual bool HaveCoins(const uint256& txid) const;
+    virtual bool HaveCoins(const OutputHash& txid) const;
 
     //! Retrieve the block hash whose state this CCoinsView currently represents
     virtual uint256 GetBestBlock() const;
@@ -311,8 +312,8 @@ protected:
 
 public:
     CCoinsViewBacked(CCoinsView* viewIn);
-    bool GetCoins(const uint256& txid, CCoins& coins) const override;
-    bool HaveCoins(const uint256& txid) const override;
+    bool GetCoins(const OutputHash& txid, CCoins& coins) const override;
+    bool HaveCoins(const OutputHash& txid) const override;
     uint256 GetBestBlock() const override;
     void SetBackend(CCoinsView& viewIn);
     bool BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock) override;
@@ -372,8 +373,8 @@ public:
     ~CCoinsViewCache();
 
     // Standard CCoinsView methods
-    bool GetCoins(const uint256& txid, CCoins& coins) const override;
-    bool HaveCoins(const uint256& txid) const override;
+    bool GetCoins(const OutputHash& txid, CCoins& coins) const override;
+    bool HaveCoins(const OutputHash& txid) const override;
     uint256 GetBestBlock() const override;
     void SetBestBlock(const uint256& hashBlock);
     bool BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock) override;
@@ -383,14 +384,14 @@ public:
      * more efficient than GetCoins. Modifications to other cache entries are
      * allowed while accessing the returned pointer.
      */
-    const CCoins* AccessCoins(const uint256& txid) const;
+    const CCoins* AccessCoins(const OutputHash& txid) const;
 
     /**
      * Return a modifiable reference to a CCoins. If no entry with the given
      * txid exists, a new one is created. Simultaneous modifications are not
      * allowed.
      */
-    CCoinsModifier ModifyCoins(const uint256& txid);
+    CCoinsModifier ModifyCoins(const OutputHash& txid);
 
     /**
      * Push the modifications applied to this cache to its base.
@@ -423,8 +424,8 @@ public:
     friend class CCoinsModifier;
 
 private:
-    CCoinsMap::iterator FetchCoins(const uint256& txid);
-    CCoinsMap::const_iterator FetchCoins(const uint256& txid) const;
+    CCoinsMap::iterator FetchCoins(const OutputHash& txid);
+    CCoinsMap::const_iterator FetchCoins(const OutputHash& txid) const;
 };
 
 #endif // BITCOIN_COINS_H

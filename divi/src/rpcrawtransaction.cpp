@@ -125,9 +125,9 @@ void TxToJSONExpanded(const CTransaction& tx, const uint256 hashBlock, Object& e
         // so we simply try looking up by both txid and bare txid as at
         // most one of them can match anyway.
         CSpentIndexValue spentInfo;
-        bool found = GetSpentIndex(CSpentIndexKey(txid, i), spentInfo);
+        bool found = GetSpentIndex(CSpentIndexKey(OutputHash(txid), i), spentInfo);
         if (!found)
-          found = GetSpentIndex(CSpentIndexKey(tx.GetBareTxid(), i), spentInfo);
+          found = GetSpentIndex(CSpentIndexKey(OutputHash(tx.GetBareTxid()), i), spentInfo);
         if (found) {
             out.push_back(Pair("spentTxId", spentInfo.txid.GetHex()));
             out.push_back(Pair("spentIndex", (int)spentInfo.inputIndex));
@@ -337,6 +337,8 @@ Value listunspent(const Array& params, bool fHelp)
             "[                   (array of json object)\n"
             "  {\n"
             "    \"txid\" : \"txid\",        (string) the transaction id \n"
+            "    \"baretxid\" : \"baretxid\", (string) The bare txid (without signatures)\n"
+            "    \"outputhash\" :  \"outputhash\", (string) The hash (txid or bare txid) that should be used for spending\n"
             "    \"vout\" : n,               (numeric) the vout value\n"
             "    \"address\" : \"address\",  (string) the divi address\n"
             "    \"account\" : \"account\",  (string) The associated account, or \"\" for the default account\n"
@@ -394,6 +396,8 @@ Value listunspent(const Array& params, bool fHelp)
         const CScript& pk = out.tx->vout[out.i].scriptPubKey;
         Object entry;
         entry.push_back(Pair("txid", out.tx->GetHash().GetHex()));
+        entry.push_back(Pair("baretxid", out.tx->GetBareTxid().GetHex()));
+        entry.push_back(Pair("outputhash", pwalletMain->GetUtxoHash(*out.tx).GetHex()));
         entry.push_back(Pair("vout", out.i));
         CTxDestination address;
         if (ExtractDestination(out.tx->vout[out.i].scriptPubKey, address)) {
@@ -477,7 +481,7 @@ Value createrawtransaction(const Array& params, bool fHelp)
     for (const Value& input : inputs) {
         const Object& o = input.get_obj();
 
-        uint256 txid = ParseHashO(o, "txid");
+        const OutputHash txid(ParseHashO(o, "txid"));
 
         const Value& vout_v = find_value(o, "vout");
         if (vout_v.type() != int_type)
@@ -707,7 +711,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
         BOOST_FOREACH (const CTxIn& txin, mergedTx.vin) {
-            const uint256& prevHash = txin.prevout.hash;
+            const OutputHash& prevHash = txin.prevout.hash;
             CCoins coins;
             view.AccessCoins(prevHash); // this is certainly allowed to fail
         }
@@ -747,7 +751,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
 
             RPCTypeCheck(prevOut, map_list_of("txid", str_type)("vout", int_type)("scriptPubKey", str_type));
 
-            uint256 txid = ParseHashO(prevOut, "txid");
+            const OutputHash txid(ParseHashO(prevOut, "txid"));
 
             int nOut = find_value(prevOut, "vout").get_int();
             if (nOut < 0)
@@ -891,9 +895,9 @@ Value sendrawtransaction(const Array& params, bool fHelp)
        whether or not segwit light has been in effect for the transaction,
        we just try locating both txid and bare txid as at most one of them
        can match anyway.  */
-    const CCoins* existingCoins = view.AccessCoins(hashTx);
+    const CCoins* existingCoins = view.AccessCoins(OutputHash(hashTx));
     if (existingCoins == nullptr)
-        existingCoins = view.AccessCoins(tx.GetBareTxid());
+        existingCoins = view.AccessCoins(OutputHash(tx.GetBareTxid()));
     const bool fHaveChain = existingCoins && existingCoins->nHeight < 1000000000;
 
     if (!fHaveMempool && !fHaveChain) {
