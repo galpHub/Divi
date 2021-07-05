@@ -40,6 +40,7 @@
 #include <uiMessenger.h>
 #include <ActiveChainManager.h>
 #include <BlockDiskAccessor.h>
+#include <StoredMasternodeBroadcasts.h>
 #include <TransactionInputChecker.h>
 #include <txmempool.h>
 
@@ -71,6 +72,8 @@
 
 #include <ValidationState.h>
 #include <verifyDb.h>
+
+StoredMasternodeBroadcasts* pStoredMnBroadcasts = nullptr;
 
 #ifdef ENABLE_WALLET
 CWallet* pwalletMain = NULL;
@@ -321,6 +324,8 @@ void MainShutdown()
     delete pwalletMain;
     pwalletMain = NULL;
 #endif
+    delete pStoredMnBroadcasts;
+    pStoredMnBroadcasts = nullptr;
     CleanupP2PConnections();
     LogPrintf("%s: done\n", __func__);
 }
@@ -1220,7 +1225,9 @@ bool InitializeDivi(boost::thread_group& threadGroup)
     LoadFeeEstimatesForMempool();
 
 // ********************************************************* Step 8: load wallet
+
     std::ostringstream strErrors;
+
 #ifdef ENABLE_WALLET
     const std::string strWalletFile = settings.GetArg("-wallet", "wallet.dat");
     if (fDisableWallet) {
@@ -1261,6 +1268,9 @@ bool InitializeDivi(boost::thread_group& threadGroup)
 #else  // ENABLE_WALLET
     LogPrintf("No wallet compiled in!\n");
 #endif // !ENABLE_WALLET
+
+    pStoredMnBroadcasts = new StoredMasternodeBroadcasts("mnbroadcasts.dat");
+
     // ********************************************************* Step 9: import blocks
 
     if (settings.ParameterIsSet("-blocknotify"))

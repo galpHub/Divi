@@ -272,3 +272,13 @@ uint256 CMasternodeBroadcast::GetHash() const
     ss << pubKeyCollateralAddress;
     return ss.GetHash();
 }
+
+void CMasternodeBroadcast::Clear()
+{
+    *this = CMasternodeBroadcast();
+}
+
+std::string CMasternodeBroadcast::ToString() const
+{
+    return strprintf("CMasternodeBroadcast(%s)", vin.prevout.ToString());
+}
