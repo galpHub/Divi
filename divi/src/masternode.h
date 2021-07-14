@@ -176,5 +176,9 @@ public:
             collateralBlock.SetNull();
         }
     }
+
+    /* These are needed to function with flat-database serialisation.  */
+    void Clear();
+    std::string ToString() const;
 };
 #endif

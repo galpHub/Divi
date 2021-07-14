@@ -3,8 +3,9 @@
 #include <string>
 #include <vector>
 #include <stdint.h>
-class CKeyStore;
 class CBlockIndex;
+class CKeyStore;
+class StoredMasternodeBroadcasts;
 struct MasternodeStartResult
 {
     bool status;
@@ -54,8 +55,8 @@ struct MasternodeCountData
 /** Relays a broadcast given in serialised form as hex string.  If the signature
  *  is present, then it will replace the signature in the broadcast.  If
  *  updatePing is true, then the masternode ping is re-signed freshly.  */
-bool RelayMasternodeBroadcast(const std::string& hexData, const std::string& signature, bool updatePing);
-MasternodeStartResult StartMasternode(const CKeyStore& keyStore, std::string alias, bool deferRelay);
+MasternodeStartResult RelayMasternodeBroadcast(const std::string& hexData, const std::string& signature, bool updatePing);
+MasternodeStartResult StartMasternode(const CKeyStore& keyStore, const StoredMasternodeBroadcasts& stored, std::string alias, bool deferRelay);
 ActiveMasternodeStatus GetActiveMasternodeStatus();
 std::vector<MasternodeListEntry> GetMasternodeList(std::string strFilter);
 MasternodeCountData GetMasternodeCounts(const CBlockIndex* chainTip);

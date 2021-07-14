@@ -289,6 +289,7 @@ BITCOIN_CORE_H = \
   spork.h \
   sporkdb.h \
   spentindex.h \
+  StoredMasternodeBroadcasts.h \
   streams.h \
   sync.h \
   SpentOutputTracker.h \
@@ -494,6 +495,7 @@ libbitcoin_wallet_a_SOURCES = \
   SuperblockSubsidyContainer.cpp \
   SuperblockHeightValidator.cpp \
   SpentOutputTracker.cpp \
+  StoredMasternodeBroadcasts.cpp \
   masternode-sync.cpp \
   masternodeconfig.cpp \
   MasternodeNetworkMessageManager.cpp \
@@ -598,6 +600,7 @@ libbitcoin_common_a_SOURCES = \
   core_io.cpp \
   eccryptoverify.cpp \
   ecwrapper.cpp \
+  flat-database.cpp \
   hash.cpp \
   hdchain.cpp \
   key.cpp \

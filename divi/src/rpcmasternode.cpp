@@ -24,6 +24,7 @@
 #include <MasternodeHelpers.h>
 #include <version.h>
 #include <RpcMasternodeFeatures.h>
+#include <StoredMasternodeBroadcasts.h>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
@@ -31,6 +32,7 @@
 using namespace json_spirit;
 
 extern CWallet* pwalletMain;
+extern StoredMasternodeBroadcasts* pStoredMnBroadcasts;
 extern CCriticalSection cs_main;
 extern void SendMoney(const CTxDestination& address, CAmount nValue, CWalletTx& wtxNew, bool spendFromVaults = false);
 extern CBitcoinAddress GetAccountAddress(std::string strAccount, bool bForceNew = false);
@@ -434,15 +436,13 @@ Value broadcaststartmasternode(const Array& params, bool fHelp)
         updatePing = true;
     }
 
+    const auto mnResult = RelayMasternodeBroadcast(params[0].get_str(), signature, updatePing);
+
     Object result;
-    if(RelayMasternodeBroadcast(params[0].get_str(), signature, updatePing))
-    {
-        result.push_back(Pair("status", "success"));
-    }
-    else
-    {
-        result.push_back(Pair("status","failed"));
-    }
+    result.emplace_back("status", mnResult.status ? "success" : "failed");
+    if(!mnResult.status)
+        result.emplace_back("error", mnResult.errorMessage);
+
     return result;
 }
 
@@ -464,7 +464,7 @@ Value startmasternode(const Array& params, bool fHelp)
 
     EnsureWalletIsUnlocked();
     Object result;
-    MasternodeStartResult mnResult = StartMasternode(*pwalletMain,alias,deferRelay);
+    MasternodeStartResult mnResult = StartMasternode(*pwalletMain, *pStoredMnBroadcasts, alias, deferRelay);
 
     result.push_back(Pair("status",mnResult.status?"success":"failed"));
     if(!mnResult.status)
@@ -638,4 +638,59 @@ Value getmasternodewinners (const Array& params, bool fHelp)
 Value getmasternodescores(const Array& params, bool fHelp)
 {
 	throw std::runtime_error("getmasternodescores is deprecated!  masternode payments always rely upon votes not current scores");
+}
+
+Value importmnbroadcast(const Array& params, bool fHelp)
+{
+     if (fHelp || params.size() != 1)
+        throw std::runtime_error(
+                "importmnbroadcast \"broadcast_hex\"\n"
+                "\nImport a pre-signed masternode broadcast into the wallet.\n"
+                "\nArguments:\n"
+                "1. broadcast_hex    (hex, required) hex representation of broadcast data\n"
+                "\nResult:\n"
+                "true|false          (boolean) true on success\n");
+
+    std::vector<unsigned char> hex = ParseHex(params[0].get_str());
+    CDataStream ss(hex,SER_NETWORK,PROTOCOL_VERSION);
+
+    CMasternodeBroadcast mnb;
+    ss >> mnb;
+
+    return pStoredMnBroadcasts->AddBroadcast(mnb);
+}
+
+Value listmnbroadcasts(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 0)
+        throw std::runtime_error(
+            "listmnbroadcasts\n"
+            "\nLists pre-signed masternode broadcasts stored in the wallet\n"
+
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"txhash\": \"hash\",    (string) Collateral transaction hash\n"
+            "    \"outidx\": n,         (numeric) Collateral transaction output index\n"
+            "    \"broadcast\": \"hex\"   (string) Stored broadcast data as hex string\n"
+            "  }, ...\n"
+            "]\n");
+
+    Array res;
+
+    for (const auto& entry : pStoredMnBroadcasts->GetMap())
+      {
+        const auto& mnb = entry.second;
+
+        CDataStream ss(SER_NETWORK,PROTOCOL_VERSION);
+        ss << mnb;
+
+        Object cur;
+        cur.emplace_back("txhash", mnb.vin.prevout.hash.GetHex());
+        cur.emplace_back("outidx", static_cast<int>(mnb.vin.prevout.n));
+        cur.emplace_back("broadcast", HexStr(ss.str()));
+        res.emplace_back(cur);
+      }
+
+    return res;
 }

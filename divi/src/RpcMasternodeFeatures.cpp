@@ -15,6 +15,7 @@
 #include <MasternodeNetworkMessageManager.h>
 #include <masternode-payments.h>
 #include <sync.h>
+#include <StoredMasternodeBroadcasts.h>
 #include <timedata.h>
 #include <utilstrencodings.h>
 #include <MasternodeHelpers.h>
@@ -69,34 +70,28 @@ MasternodeCountData::MasternodeCountData(
 {
 }
 
-bool RelayMasternodeBroadcast(const std::string& hexData, const std::string& signature, const bool updatePing)
+namespace
+{
+
+/** Relays an already parsed masternode broadcast, optionally updating the
+ *  contained ping if we can (because it is our masternode).  */
+MasternodeStartResult RelayParsedMasternodeBroadcast(CMasternodeBroadcast mnb, const bool updatePing)
 {
     const auto& mnModule = GetMasternodeModule();
     auto& activeMasternode = mnModule.getActiveMasternode();
     auto& mnodeman = mnModule.getMasternodeManager();
-
-    CMasternodeBroadcast mnb = readFromHex<CMasternodeBroadcast>(hexData);
-
-    if(!signature.empty())
-        mnb.signature = ParseHex(signature);
 
     if (updatePing)
     {
         if(activeMasternode.IsOurBroadcast(mnb,true))
         {
             if(activeMasternode.UpdatePing(mnb.lastPing))
-            {
-                LogPrint("masternode","Ping updated successfully!\n");
-            }
+                LogPrint("masternode", "Ping updated successfully!\n");
             else
-            {
-                LogPrint("masternode","Ping not updated! Failure to sign!\n");
-            }
+                LogPrint("masternode", "Ping not updated! Failure to sign!\n");
         }
         else
-        {
-            LogPrint("masternode","This broadcast does not belong to us!\n");
-        }
+            LogPrint("masternode", "This broadcast does not belong to us!\n");
     }
 
     if(!IsBlockchainSynced())
@@ -104,19 +99,34 @@ bool RelayMasternodeBroadcast(const std::string& hexData, const std::string& sig
         LogPrintf("Warning! Trying to relay broadcast while blockchain sync hasnt completed may fail!\n");
     }
 
+    MasternodeStartResult result;
+
     CDataStream reserializedBroadcast(SER_NETWORK,PROTOCOL_VERSION);
     reserializedBroadcast << mnb;
-    if (mnodeman.ProcessMessage(nullptr, "mnb", reserializedBroadcast))
+    if (!mnodeman.ProcessMessage(nullptr, "mnb", reserializedBroadcast))
     {
-        return true;
+        LogPrintf("%s - Relaying broadcast vin = %s\n",__func__, mnb.vin);
+        result.status = false;
+        result.errorMessage = "Error processing broadcast";
+        return result;
     }
-    else
-    {
-        return false;
-    }
+
+    result.status = true;
+    return result;
 }
 
-MasternodeStartResult StartMasternode(const CKeyStore& keyStore,std::string alias, bool deferRelay)
+} // anonymous namespace
+
+MasternodeStartResult RelayMasternodeBroadcast(const std::string& hexData, const std::string& signature, const bool updatePing)
+{
+    CMasternodeBroadcast mnb = readFromHex<CMasternodeBroadcast>(hexData);
+    if(!signature.empty())
+        mnb.signature = ParseHex(signature);
+
+    return RelayParsedMasternodeBroadcast(mnb, updatePing);
+}
+
+MasternodeStartResult StartMasternode(const CKeyStore& keyStore, const StoredMasternodeBroadcasts& stored, std::string alias, bool deferRelay)
 {
     const auto& mnModule = GetMasternodeModule();
     auto& mnodeman = mnModule.getMasternodeManager();
@@ -128,6 +138,7 @@ MasternodeStartResult StartMasternode(const CKeyStore& keyStore,std::string alia
             continue;
 
         CMasternodeBroadcast mnb;
+        bool updatePing = false;
 
         if(!CMasternodeBroadcastFactory::Create(
                 keyStore,
@@ -137,8 +148,25 @@ MasternodeStartResult StartMasternode(const CKeyStore& keyStore,std::string alia
                 false,
                 deferRelay))
         {
-            result.status = false;
-            return result;
+            /* We failed to sign a new broadcast with our wallet, but we may
+               have a stored one.  */
+
+            COutPoint outp;
+            if (!configEntry.parseInputReference(outp))
+            {
+                result.status = false;
+                result.errorMessage = "Failed to parse input reference";
+                return result;
+            }
+
+            if (!stored.GetBroadcast(outp, mnb))
+            {
+                result.status = false;
+                result.errorMessage = "No broadcast message available";
+                return result;
+            }
+
+            updatePing = true;
         }
 
         CDataStream serializedBroadcast(SER_NETWORK,PROTOCOL_VERSION);
@@ -150,20 +178,7 @@ MasternodeStartResult StartMasternode(const CKeyStore& keyStore,std::string alia
             return result;
         }
 
-        if(!IsBlockchainSynced())
-        {
-            LogPrintf("Warning! Trying to relay broadcast while blockchain sync hasnt completed may fail!");
-        }
-        if(!mnodeman.ProcessMessage(nullptr, "mnb", serializedBroadcast))
-        {
-            LogPrintf("%s - Relaying broadcast vin = %s\n",__func__, mnb.vin);
-            result.status = false;
-            result.errorMessage = "Error processing broadcast";
-            return result;
-        }
-
-        result.status = true;
-        return result;
+        return RelayParsedMasternodeBroadcast (mnb, updatePing);
     }
     result.status = false;
     result.errorMessage = "Invalid alias, couldn't find MN. Check your masternode.conf file";
